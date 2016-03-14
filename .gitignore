@@ -4,6 +4,11 @@
 *.o
 *.class
 
+#exe
+*.exe
+
+#bin dir
+bin/
 
 #OS junk files
 [Tt]humbs.db
