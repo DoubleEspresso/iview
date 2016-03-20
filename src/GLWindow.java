@@ -83,11 +83,16 @@ public abstract class GLWindow
 		return is_initialized;
 	}
 	
+	public void refresh()
+	{
+		glcanvas.redraw();
+	}
+	
 	private static void initGL(GLContext glcontext)
 	{
 		glcontext.getGL().glEnable(GL.GL_TEXTURE_2D);
 		glcontext.getGL().glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
+		glcontext.getGL().glDisable(GL2.GL_DEPTH_TEST);
 	}
 	
 	public GL2 getGL2instance()
@@ -117,6 +122,7 @@ public abstract class GLWindow
 				glcanvas.setCurrent();
 				glcontext.makeCurrent();
 				onMouseScroll(e);
+				refresh();
 				glcontext.release();
 			}
 		});
@@ -230,6 +236,7 @@ public abstract class GLWindow
 		glcanvas.setCurrent();
 		glcontext.makeCurrent();
 		onResize(getGL2instance(), r.width, r.height);
+		refresh();
 		glcontext.release();
 	}
 
@@ -238,19 +245,23 @@ public abstract class GLWindow
 
 		Display.getDefault().asyncExec(new Runnable()
 		{
+			
 			public void run()
 			{
 				if (!glcanvas.isDisposed()) // avoid errors on exit
 				{
 					Rectangle r = clientSize();
 					glcanvas.setCurrent();
-					glcontext.makeCurrent();
-					paint(getGL2instance(), r.width, r.height);
+					glcontext.makeCurrent();					
+					paint(getGL2instance(), r.width, r.height);					
 					glcanvas.swapBuffers();
+					refresh();
 					glcontext.release();
+					
 				}
-			}
+			}			
 		});
+		
 	}
 	
 	public Rectangle clientSize()
@@ -261,11 +272,13 @@ public abstract class GLWindow
 	public void onResize(GL2 gl2, int w, int h) 
 	{
         gl2.glMatrixMode( GL2.GL_PROJECTION );
+        gl2.glClearColor(0f, 0f, 0f, 0f);
         gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT); // helps to stop flickering on resize        
         gl2.glLoadIdentity();               
-        gl2.glOrtho(0, w, h, 0, 0, 1);        
-        gl2.glViewport( 0, 0, w, h);
+        gl2.glOrtho(0, w, h, 0, 0, 1);
+        
         gl2.glMatrixMode(GL2.GL_MODELVIEW);
+        gl2.glViewport( 0, 0, w, h);        
 	}
 	
 	public abstract void paint(GL2 gl2, int w, int h);

@@ -1,13 +1,8 @@
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
-import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.MouseListener;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.opengl.GLCanvas;
-import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
@@ -39,122 +34,33 @@ import com.jogamp.opengl.GLContext;
 // 12. add support for learning algo for art + image
 
 public class Iview
-{
-	public static Vec2 minWindowDims;
-	public static Vec2 mousePos;
-	public static Vec2 imagePos;
-	public static Vec2 displayDims;
-	public static Vec2 prevMousePos;	
-	public static float zoomf = 1.0f;
-	public static boolean isDragging = false;
-	
+{	
 	protected static ImagePane imgPane;
-	protected static Composite composite;
-	protected static GLCanvas glcanvas;
-	protected static GLContext glcontext;
-	protected static Shell shell;
-	protected static Display display;
 	
 	public static void main(String[] args)
 	{
 		initializeWindow();
-			
-		// key listener
-//		glcanvas.addKeyListener(new KeyListener()
-//		{
-//			@Override
-//			public void keyPressed(KeyEvent e)
-//			{
-//			}
-//
-//			@Override
-//			public void keyReleased(KeyEvent e)
-//			{
-//			}
-//		});
-//
-//		// mouse listeners
-//		glcanvas.addMouseListener(new MouseListener()
-//		{
-//			@Override
-//			public void mouseDown(MouseEvent e)
-//			{
-//
-//				if (e.button == 1)// && clickCount == 1)
-//				{
-//					mousePos.set(e.x, e.y);
-//					System.out.println("(" + mousePos.x + "," + mousePos.y
-//							+ ")");
-//					isDragging = true;
-//				}
-//			}
-//
-//			@Override
-//			public void mouseUp(MouseEvent e)
-//			{
-//				if (e.button == 1)
-//				{
-//					isDragging = false;
-//				}
-//			}
-//
-//			@Override
-//			public void mouseDoubleClick(MouseEvent e)
-//			{
-//				// TODO: rescale
-//			}
-//
-//		});
-//			
-//		// drag image for translate
-//		glcanvas.addListener(SWT.MouseMove, new Listener()
-//		{
-//			@Override
-//			public void handleEvent(Event e)
-//			{
-//
-//				if (!isDragging) return;
-//				mousePos.set(e.x, e.y);
-//				prevMousePos.set(mousePos);
-//			}
-//		});
-
-		// TODO: drag & drop event
-
-		// right-click menu for glcanvas
-		attachRightClickMenu(glcontext, glcanvas);
-
+		attachRightClickMenu(imgPane.glcontext, imgPane.glcanvas);
 		
-		//shell.open();
-		while (!shell.isDisposed())
+		// TODO: drag & drop event
+		while (!imgPane.shell.isDisposed())
 		{
-			//if (!display.isDisposed()) glcanvas.redraw(); 
-			if (!display.readAndDispatch()) display.sleep();
+			//if (!imgPane.display.isDisposed()) imgPane.glcanvas.redraw(); 
+			if (!imgPane.display.readAndDispatch()) imgPane.display.sleep();
 			
 		}
-		glcanvas.dispose();
-		display.dispose();		
+		imgPane.glcanvas.dispose();
+		imgPane.display.dispose();		
 	}
 
 	private static GL2 getGL()
 	{
-		return glcontext.getGL().getGL2();
+		return imgPane.getGL2instance();
 	}
 	
 	private static void initializeWindow()
 	{
-		display = new Display();
-        imgPane = new ImagePane(display, "iview", 640, 480);
-        composite = imgPane.composite;
-        glcanvas = imgPane.glcanvas;
-        glcontext = imgPane.glcontext;
-        shell = imgPane.shell;
-        
-    	minWindowDims = new Vec2(160, 120);
-    	mousePos = new Vec2(0, 0);
-    	imagePos = new Vec2(0,0);
-    	displayDims = new Vec2(0, 0);
-    	prevMousePos = new Vec2(0, 0);
+        imgPane = new ImagePane(new Display(), "iview", 640, 480);
 	}
 
 
@@ -218,7 +124,7 @@ public class Iview
 				if (!imgPane.hasImage) return;
 
 				Histogram h = new Histogram(imgPane.texture.image, 0);
-				new GLHistogram(display, "histogram", 450, 180, h.Bins());
+				new GLHistogram(imgPane.display, "histogram", 450, 180, h.Bins());
 			}
 		});
 		
@@ -253,18 +159,11 @@ class ImagePane extends GLWindow
 	public final Vec2 MouseDelta = new Vec2(0f,0f);
 	public final Vec2 Translate = new Vec2(0f,0f);
 	public final Vec2 ScalePos = new Vec2 (0f, 0f);
-	public Boolean debug = false;
+	private Boolean processing = false;
+	
 	public ImagePane(Display d, String s, int w, int h) 
 	{ 
 		super(d,s,w,h);
-		
-	}
-	
-	// relative mouse position on control.
-	Point getMousePos()
-	{
-		Point cursorLocation = Display.getCurrent().getCursorLocation();
-		return Display.getCurrent().getFocusControl().toControl(cursorLocation);
 	}
 	
 	private void display(GL2 gl2, float w, float h, float iw, float ih)
@@ -273,36 +172,42 @@ class ImagePane extends GLWindow
 		
 		//float dX = 0;//(w - iw)/2f;
 		//float dY = 0;//(h - ih)/2f;
-	
-		if (debug)
-		{
-			gl2.glScalef(scale , scale , 0f);
-			gl2.glTranslatef(-(float) ( percentX * iw + Translate.x)  , -(float) ( percentY * ih + Translate.y), 0f);
-			
-			return;
-		}
 		
 		if (scale != 1)
 		{
 			//gl2.glTranslatef( (float) (MousePos.x), (float) (MousePos.y), 0f);
 			gl2.glTranslatef((float) ( ScalePos.x)  , (float) ( ScalePos.y), 0f);
 			gl2.glScalef(scale , scale , 0f);
-			gl2.glTranslatef(-(float) ( percentX * iw + Translate.x)  , -(float) ( percentY * ih + Translate.y), 0f);
-			
+			gl2.glTranslatef(-(float) ( percentX * iw + Translate.x)  , -(float) ( percentY * ih + Translate.y), 0f);			
 			//System.out.println("ix(" + percentX * w + ") iy(" + percentY * h + ") " + "mx(" + getMousePos().x + ") my(" + getMousePos().y + ")");
 		}
+		
+		if (mouseDown)
+		{
+			gl2.glTranslatef((float)(Translate.x + MouseDelta.x), (float)(Translate.y + MouseDelta.y), 0f);
+		}
+		else gl2.glTranslatef((float) ( Translate.x)  , (float) ( Translate.y), 0f);
 	}
+	
 	
 	public void paint(GL2 gl2, int width, int height)
 	{
+        gl2.glMatrixMode( GL2.GL_PROJECTION );
+        //gl2.glClearColor(0f, 0f, 0f, 0f);
+        //gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT); // helps to stop flickering on resize        
+        gl2.glLoadIdentity();               
+        gl2.glOrtho(0, width, height, 0, 0, 1);
+        
+        gl2.glMatrixMode(GL2.GL_MODELVIEW);
+        gl2.glViewport( 0, 0, width, height);
+		
+		
 		gl2.glClearColor(0f, 0f, 0f, 0f);
 		gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT);
 		gl2.glLoadIdentity();
 		
         if (hasImage) 
         {
-        	gl2.glEnable(GL2.GL_TEXTURE_2D);
- 
         	// handle aspect ratio based on window size and image size
         	float iw = (float) texture.image.width;
         	float ih = (float) texture.image.height;       	
@@ -320,86 +225,63 @@ class ImagePane extends GLWindow
 			}
 
         	imageSize.x = w; imageSize.y = h;
-
-            // apply scale factors	
+        	
+        	// apply scale factors	
         	display(gl2, width, height, w, h);
-        	applyTranslate(gl2,  w,  h);
-    		
-
-
+        	
         	gl2.glBindTexture(GL2.GL_TEXTURE_2D, texture.ID());       	
         	gl2.glBegin(GL2.GL_QUADS);
         	gl2.glTexCoord2f(0, 0); gl2.glVertex2d(0, 0);
         	gl2.glTexCoord2f(1, 0); gl2.glVertex2d(w, 0);
         	gl2.glTexCoord2f(1, 1); gl2.glVertex2d(w, h);
         	gl2.glTexCoord2f(0, 1); gl2.glVertex2d(0, h);
-        	gl2.glEnd();        	
-
-        	gl2.glDisable(GL2.GL_TEXTURE_2D);
-        	
+        	gl2.glEnd();
         }
 	}
+	
 	public void onKeyPressed(KeyEvent e)
 	{
 		if (!hasImage) return;
-
+		
 		pscale = scale;
 		ScalePos.x = MousePos.x;
 		ScalePos.y = MousePos.y;
-		debug = false;
-		
+
 		if (e.character == '=')
 		{	
-			//scale += .15f;
 			scale *= 1.1f;
 		}
 		else if (e.character == '-')
-		{
-			//scale -= .15f;	
-			scale *= 0.9f;
-		}
-		else if (e.character == 'd')
-		{
-			debug = true;
+		{	
+			scale /= 1.1f;
 		}
 
 		updateDisplayScale();
-		glcanvas.redraw();
-	}
-
-	void applyTranslate(GL2 gl2, float w, float h)
-	{				
-		if (mouseDown)
-		{
-			gl2.glTranslatef((float)(Translate.x + MouseDelta.x), (float)(Translate.y + MouseDelta.y), 0f);
-			//imageCorner.x += Translate.x + MouseDelta.x;
-			//imageCorner.y += Translate.y + MouseDelta.y;
-			//glcanvas.redraw();
-		}
-		else gl2.glTranslatef((float) ( Translate.x)  , (float) ( Translate.y), 0f);
-		
-		glcanvas.redraw();
-
 	}
 
 	public void onMouseScroll(MouseEvent e) 
 	{
-//		if (!hasImage) return;		
-//		
-//		pscale = scale;
-//		ScalePos.x = MousePos.x;
-//		ScalePos.y = MousePos.y;
-//		if (e.count > 0)
-//		{
-//			scale += .05f;
-//		}
-//		else
-//		{
-//			scale -= .05f;
-//		}
-//		
-//		updateDisplayScale();		
-//		glcanvas.redraw();
+		if (processing) System.out.println("..already processing");
+		int count = e.count;
+		if (!hasImage || Math.abs(count) != 3 ) return;
+		
+		processing = true;
+				
+		pscale = scale;
+		ScalePos.x = MousePos.x;
+		ScalePos.y = MousePos.y;
+
+		if (count > 0)
+		{	
+			scale *= 1.1f;
+		}
+		else if (count < 0)
+		{			
+			scale /= 1.1f;
+		}
+		updateDisplayScale();
+		
+		processing = false;
 	}	
 	
 	public void onMouseDown(Event e) 
@@ -407,7 +289,6 @@ class ImagePane extends GLWindow
 		mouseDown = true;
 		MouseDelta.x=0;
 		MouseDelta.y=0;
-		glcanvas.redraw();
 	}
 	
 	public void onMouseUp(Event e) 
@@ -415,8 +296,7 @@ class ImagePane extends GLWindow
 		if (mouseDown)
 		{
 			mouseDown = false;
-			glcanvas.redraw();
-			 //System.out.println("onMouseUp");
+
 			Translate.x += MouseDelta.x;
 			Translate.y += MouseDelta.y;
 
@@ -428,6 +308,8 @@ class ImagePane extends GLWindow
 
 			MouseDelta.x = 0;
 			MouseDelta.y = 0;
+			
+			
 			float ppscale = pscale;
 			pscale = scale;
 			updateDisplayScale();
@@ -442,7 +324,6 @@ class ImagePane extends GLWindow
 		MouseDelta.y += (e.y - MousePos.y)/scale;
 		MousePos.x = e.x;
 		MousePos.y = e.y;	
-
 		//System.out.println("mouse("+MousePos.x + "," + MousePos.y + ")");
 	}
 	
@@ -451,10 +332,7 @@ class ImagePane extends GLWindow
 		// imageSize is set to starting width/height each time we call updateScale
 		double prevImageSizeX = imageSize.x * pscale;
 		double prevImageSizeY = imageSize.y * pscale;
-		
-		// find mouse position in [0,1] on image
-		//Point mp = getMousePos();
-		
+
 		// assume the mouse is "on the image" 
 		percentX = (float) (ScalePos.x - imageCorner.x) / (float) prevImageSizeX;
 		percentY = (float) (ScalePos.y - imageCorner.y) / (float) prevImageSizeY;
@@ -464,8 +342,7 @@ class ImagePane extends GLWindow
 							
 		imageCorner.x += (prevImageSizeX - imageSize.x) * percentX ;
 		imageCorner.y += (prevImageSizeY - imageSize.y) * percentY ;
-		
-		System.out.println("mouse("+ScalePos.x + "," + ScalePos.y + "), corner(" + imageCorner.x + "," + imageCorner.y+ ") [" + percentX + "," + percentY + "] imsz(" + imageSize.x + "," + imageSize.y + ")");		
+		//System.out.println("mouse("+ScalePos.x + "," + ScalePos.y + "), corner(" + imageCorner.x + "," + imageCorner.y+ ") [" + percentX + "," + percentY + "] imsz(" + imageSize.x + "," + imageSize.y + ")");		
 	}		
 }
 
@@ -492,7 +369,7 @@ class GLHistogram extends GLWindow
 	public void paint(GL2 gl2, int w, int h)
 	{
 		gl2.glClearColor(0f, 0f, 0f, 0f);
-		gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT);
+		//gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT);
 		gl2.glLoadIdentity();
 		if (hBins != null)
 		{

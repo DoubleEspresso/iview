@@ -4,6 +4,8 @@
 #include <stdio.h>
 extern "C"
 {
+#include "jinclude.h"
+#include "jerror.h"
 #include "jpeglib.h"
 }
 #include <setjmp.h>
