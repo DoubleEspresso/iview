@@ -89,7 +89,7 @@ bool Image_JPEG::fliph()
 	  for (int k=0; k<comps(); ++k)
 	    {	   
 	      int ileft = i * stride + j + k;
-	      int iright = i * stride + idx - k;
+	      int iright = i * stride + idx - (comps()-k);
 	      unsigned char src = data[ileft];
 	      data[ileft] = data[iright];
 	      data[iright] = src;
