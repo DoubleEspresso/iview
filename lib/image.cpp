@@ -2,7 +2,6 @@
 #include <ctype.h>
 
 #include "image.h"
-#include "image_jpeg.h"
 #include "stringutils.h"
 
 Image::Image()
@@ -34,6 +33,12 @@ bool Image::save(char * filename, uint quality)
 {
   Image_JPEG * im = new Image_JPEG();
   return im->save_jpeg(filename, quality);
+}
+
+// in place rotation?
+bool Image::rotate(Image_JPEG& im, const int r = 0)
+{
+  return true;
 }
 
 

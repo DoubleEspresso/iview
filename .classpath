@@ -15,7 +15,7 @@
 	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/jna/jna-4.2.1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/libiview">
 		<attributes>
-			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="iview/bin"/>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/home/mjg/java-workspace/iview/lib"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/usr/lib/eclipse/plugins/org.eclipse.jface_3.8.0.dist.jar"/>

@@ -29,14 +29,16 @@ test: debug.exe
 install:
 	cp *.so ../bin
 
+#$(CXX) -shared -Wl,-soname,libimgJpeg.so -I../../external/jpeg/src $(LFLAGS) -o $@ $^
+
 libimgJpeg.so: ${LIBJPEG_OBJS}
-	$(CXX) -shared -Wl,-soname,libimgJpeg.so -I../../external/jpeg/src $(LFLAGS) -o $@ $^
+	$(CXX) -I../../external/jpeg/src -shared -Wl,-soname,libimgJpeg.so -o $@ $^ $(LFLAGS)
 
 libiview.so: ${OBJS}
-	$(CXX) -shared -Wl,-soname,libiview.so -I../../external/jpeg/src $(LFLAGS) -o $@ $^
+	$(CXX) -I../../external/jpeg/src -shared -Wl,-soname,libiview.so -o $@ $^ $(LFLAGS)
 
 debug.exe: ${TESTOBJS}
-	$(CXX) -I../../external/jpeg/src $(LFLAGS) -o $@ $^
+	$(CXX) -I../../external/jpeg/src -o $@ $^ $(LFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $<

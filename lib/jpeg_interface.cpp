@@ -36,4 +36,8 @@ extern "C"
   {
     return handle->size();
   }
+  bool jpeg_rotate(Image_JPEG * handle)
+  {
+    return handle->rotate90();
+  }
 };

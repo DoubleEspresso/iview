@@ -38,6 +38,7 @@ class Image_JPEG
   int height() { return img_height; }
   int comps() { return img_comps; }
   int size() { return img_width * img_height * img_comps; }
+  bool rotate90();
   unsigned char * img_data() { return data; } 
 };
 #endif

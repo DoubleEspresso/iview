@@ -7,7 +7,7 @@ int main(int argc, char * argv[])
 {
   Image im;
   void * iptr;
-  if (im.load("/home/mjg/test-photos/twin-cities/2015-05-31-002801.jpg", iptr))
+  if (im.load("/home/mjg/photos/carson-phone/IMG_1005.JPG", iptr))
     {
       printf("..load success!\n");
       Image_JPEG * jptr = (Image_JPEG*) iptr;
@@ -17,8 +17,12 @@ int main(int argc, char * argv[])
 	     jptr->height(),
 	     jptr->comps(),
 	     jptr->size());
-      
-      if (jptr->save_jpeg("/home/mjg/test-photos/test-save.jpg", 20))
+ 
+      printf("..rotating");
+      jptr->rotate90();
+      //jptr->rotate90();
+
+      if (jptr->save_jpeg("/home/mjg/photos/carson-phone/save-rotated.jpg", 20))
 	{
 	  printf("..test save succes!\n");
 	}

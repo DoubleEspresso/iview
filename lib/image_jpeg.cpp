@@ -55,6 +55,37 @@ bool Image_JPEG::load_jpeg(char * fname)
   return true;
 }
 
+bool Image_JPEG::rotate90()
+{
+  if (!data || width() <= 1 || height() <= 1) return false;
+  int stride = width() * comps();
+
+  unsigned char *  dst = new unsigned char[width() * height() * comps()];  
+  for (int j = stride-comps(), idx = 0; j >=0 ; j-= comps())
+    {
+      for (int i=0; i < height(); ++i)
+	{ 
+
+	  for (int k=0; k<comps(); ++k)
+	    {
+	      int isrc = i * stride + j + k;
+	      dst[idx++] = data[isrc];
+	    }
+	  
+	}
+    } 
+  memcpy(data, dst, size() * sizeof(unsigned char));  
+
+  // try inplace rotate ??
+
+  delete [] dst; dst = 0;
+  int w = width();
+  img_width = height(); 
+  img_height = w;
+  stride = width() * comps();
+
+  return true;
+}
 
 bool Image_JPEG::save_jpeg(char * fname, uint quality)
 {
