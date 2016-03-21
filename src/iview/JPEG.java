@@ -49,4 +49,14 @@ public class JPEG
 	{
 		return Libjpeg.instance.jpeg_rotate(handle);
 	}
+	
+	public Boolean flipv()
+	{
+		return Libjpeg.instance.jpeg_flipv(handle);
+	}
+	
+	public Boolean fliph()
+	{
+		return Libjpeg.instance.jpeg_fliph(handle);
+	}
 }

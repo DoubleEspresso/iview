@@ -262,6 +262,16 @@ class ImagePane extends GLWindow
 			texture.Rotate();
 			refresh();
 		}
+		else if (e.character == 'v')
+		{
+			texture.FlipV();
+			refresh();
+		}
+		else if (e.character == 'h')
+		{
+			texture.FlipH();
+			refresh();
+		}
 
 		updateDisplayScale();
 	}

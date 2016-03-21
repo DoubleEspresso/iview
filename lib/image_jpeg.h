@@ -38,7 +38,12 @@ class Image_JPEG
   int height() { return img_height; }
   int comps() { return img_comps; }
   int size() { return img_width * img_height * img_comps; }
+
+  /* to be moved to image.h/image.cpp */
   bool rotate90();
+  bool fliph();
+  bool flipv();
+
   unsigned char * img_data() { return data; } 
 };
 #endif

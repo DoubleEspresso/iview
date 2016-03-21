@@ -53,6 +53,55 @@ public class Image
 		}
 	}
 	
+	public Boolean FlipV() 
+	{
+		try 
+		{
+			if (!Plugin.Initialized()) 
+			{
+				System.out.println("..flipv called when not initialized");
+				return false;
+			}
+			pluginInstance = Plugin.getInstance();
+			pluginType = Plugin.getType();
+			JPEG jimg = ((JPEG) pluginInstance);
+			Boolean ok = jimg.flipv();
+			pixelData = jimg.data().getByteBuffer(0, jimg.size());			
+			pixelData.position(0);
+			
+			return ok; 
+		} 
+		catch (Exception any) {
+			System.out.println("..exception calling rotate " + any.getMessage());
+			return false;
+		}
+	}
+	
+	public Boolean FlipH() 
+	{
+		try 
+		{
+			if (!Plugin.Initialized()) 
+			{
+				System.out.println("..fliph called when not initialized");
+				return false;
+			}
+			pluginInstance = Plugin.getInstance();
+			pluginType = Plugin.getType();
+			JPEG jimg = ((JPEG) pluginInstance);
+			Boolean ok = jimg.fliph();
+			pixelData = jimg.data().getByteBuffer(0, jimg.size());			
+			pixelData.position(0);
+			
+			return ok; 
+		} 
+		catch (Exception any) {
+			System.out.println("..exception calling rotate " + any.getMessage());
+			return false;
+		}
+	}
+
+	
 	public Boolean Load()
 	{
 		if (!Initialized())

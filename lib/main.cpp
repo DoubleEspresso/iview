@@ -18,11 +18,11 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-      printf("..rotating");
-      jptr->rotate90();
+      //printf("..rotating");
+      jptr->flipv();
       //jptr->rotate90();
 
-      if (jptr->save_jpeg("/home/mjg/photos/carson-phone/save-rotated.jpg", 20))
+      if (jptr->save_jpeg("/home/mjg/photos/carson-phone/save-flipv.jpg", 20))
 	{
 	  printf("..test save succes!\n");
 	}

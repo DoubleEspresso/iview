@@ -51,6 +51,22 @@ public class GLTexture
 		return ok;
 	}
 	
+	public Boolean FlipV()
+	{
+		Boolean ok = image.FlipV();
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
+	public Boolean FlipH()
+	{
+		Boolean ok = image.FlipH();
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
 	public void Bind() 
 	{
 		GL.glBindTexture(GL2.GL_TEXTURE_2D, texture_id);

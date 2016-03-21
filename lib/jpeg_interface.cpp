@@ -40,4 +40,12 @@ extern "C"
   {
     return handle->rotate90();
   }
+  bool jpeg_flipv(Image_JPEG * handle)
+  {
+    return handle->flipv();
+  }
+  bool jpeg_fliph(Image_JPEG * handle)
+  {
+    return handle->fliph();
+  }
 };

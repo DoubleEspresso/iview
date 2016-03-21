@@ -55,6 +55,50 @@ bool Image_JPEG::load_jpeg(char * fname)
   return true;
 }
 
+bool Image_JPEG::flipv()
+{
+  if (!data || width() <= 1 || height() <= 1) return false;
+  int stride = width() * comps();
+  
+  for (int i = 0, idx = height()-1; i < height() / 2; ++i, --idx)
+    {
+      for (int j=0 ; j<stride; j += comps())
+	{
+	  for (int k =0; k<comps(); ++k)
+	    { 
+	      int iup = i * stride + j + k;
+	      int idown = idx * stride + j + k;
+	      unsigned char src = data[iup];
+	      data[iup] =  data[idown];
+	      data[idown] = src;
+	    }
+	}
+    }
+  return true;
+}
+
+bool Image_JPEG::fliph()
+{
+  if (!data || width() <= 1 || height() <= 1) return false;
+  int stride = width() * comps();
+  for (int j = 0, idx = stride; j < stride/2 ; j += comps(), idx -= comps())
+    {
+      for (int i=0; i < height(); ++i)
+	{ 
+
+	  for (int k=0; k<comps(); ++k)
+	    {	   
+	      int ileft = i * stride + j + k;
+	      int iright = i * stride + idx - k;
+	      unsigned char src = data[ileft];
+	      data[ileft] = data[iright];
+	      data[iright] = src;
+	    }	  
+	}
+    } 
+  return true;
+}
+
 bool Image_JPEG::rotate90()
 {
   if (!data || width() <= 1 || height() <= 1) return false;

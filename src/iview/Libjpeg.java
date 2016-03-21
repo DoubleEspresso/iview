@@ -16,5 +16,7 @@ public interface Libjpeg extends Library
 	public Pointer jpeg_data(Pointer handle);
 	public int jpeg_size(Pointer handle);
 	public Boolean jpeg_rotate(Pointer handle);
+	public Boolean jpeg_flipv(Pointer handle);
+	public Boolean jpeg_fliph(Pointer handle);
 }
 

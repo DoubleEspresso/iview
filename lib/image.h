@@ -8,7 +8,6 @@ typedef unsigned int uint;
 namespace
 {
   enum ImageType { NONE, JPEG, TIFF, PNG };
-  enum Rotation { R90, R180, R270 };
 }
 
 class Image
@@ -27,11 +26,13 @@ class Image
   bool load(char * filename, void*& iptr);
   bool save(char * filename, uint quality);
   bool parse_type(char * ext);
+  bool set(unsigned char * data);
 
   // image operations
   bool crop();
-  bool translate();
-  bool rotate(Image_JPEG& im, const int r );
+  bool fliph();
+  bool flipv();
+  bool rotate90();
 
   // filters etc.
 
