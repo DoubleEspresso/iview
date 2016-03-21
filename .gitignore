@@ -3,6 +3,7 @@
 *.dll
 *.o
 *.class
+*.so.62
 
 #exe
 *.exe
