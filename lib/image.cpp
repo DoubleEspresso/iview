@@ -35,12 +35,6 @@ bool Image::save(char * filename, uint quality)
   return im->save_jpeg(filename, quality);
 }
 
-// in place rotation?
-bool Image::rotate(Image_JPEG& im, const int r = 0)
-{
-  return true;
-}
-
 
 bool Image::parse_type(char * ext)
 {
