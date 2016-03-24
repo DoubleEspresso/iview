@@ -5,12 +5,11 @@
 
 int main(int argc, char * argv[])
 {
-  Image im;
-  void * iptr;
-  if (im.load("/home/mjg/photos/carson-phone/IMG_1005.JPG", iptr))
+  Image * im = new Image();
+  if (im->load("/home/mjg/Desktop/test-blur.jpg"))///home/mjg/photos/carson-phone/IMG_1215.JPG"))
     {
       printf("..load success!\n");
-      Image_JPEG * jptr = (Image_JPEG*) iptr;
+      Image_JPEG * jptr = im->get_handle();
       
       printf(" .. w(%d), h(%d), comps(%d), size(%d)\n",
 	     jptr->width(),
@@ -18,14 +17,20 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-      //printf("..rotating");
-      jptr->flipv();
+      
+      printf("..sharpen");
+      im->sharpen();
+      //jptr->flipv();
       //jptr->rotate90();
-
-      if (jptr->save_jpeg("/home/mjg/photos/carson-phone/save-flipv.jpg", 20))
+      
+      if (im->save("/home/mjg/Desktop/test-sharpen.jpg",100 ))//"/home/mjg/photos/carson-phone/save-sharpen.jpg", 100))
 	{
 	  printf("..test save succes!\n");
 	}
+      //if (jptr->save_jpeg("/home/mjg/photos/carson-phone/save-flipv.jpg", 20))
+      //{
+      //printf("..test save succes!\n");
+      //}
     }
   else
     {

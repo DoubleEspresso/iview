@@ -44,6 +44,7 @@ class Image_JPEG
   bool fliph();
   bool flipv();
 
+  void copy_data(unsigned char * indata, int w, int h, int cmps);
   unsigned char * img_data() { return data; } 
 };
 #endif

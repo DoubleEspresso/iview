@@ -1,8 +1,14 @@
 #include "image_jpeg.h"
 
 
-Image_JPEG::Image_JPEG()
+Image_JPEG::Image_JPEG() :   
+  img_width(0), img_height(0), img_comps(0), data(0)
 {
+}
+
+Image_JPEG::~Image_JPEG()
+{
+  if (data) { delete[] data; data = 0;}
 }
 
 bool Image_JPEG::load_jpeg(char * fname)
@@ -18,9 +24,11 @@ bool Image_JPEG::load_jpeg(char * fname)
       return false;
     }
 
+
   struct jpeg_err jerr;
   decompress_params.err = jpeg_std_error(&jerr.pub);
   //jerr.pub.error_exit = jpeg_err_exit;
+
 
   if (setjmp(jerr.setjmp_buffer))
     {
@@ -38,8 +46,10 @@ bool Image_JPEG::load_jpeg(char * fname)
   img_width = decompress_params.output_width;
   img_height= decompress_params.output_height;
   img_comps = decompress_params.output_components;
+
   data = new unsigned char[decompress_params.output_width * decompress_params.output_height * decompress_params.output_components];
   int line_count = 0;
+
   while (decompress_params.output_scanline < decompress_params.output_height)
     {
       jpeg_read_scanlines(&decompress_params, buffer, 1); // 1 only for gray scale
@@ -53,6 +63,14 @@ bool Image_JPEG::load_jpeg(char * fname)
   jpeg_destroy_decompress(&decompress_params);
   fclose(infile);
   return true;
+}
+
+void Image_JPEG::copy_data(unsigned char * indata, int w, int h, int cmps)
+{
+  if (data) {delete [] data; data = 0; }
+  data = new unsigned char [w*h*cmps];
+  img_width = w; img_height = h; img_comps = cmps;
+  memcpy(data, indata, w * h * cmps * sizeof(unsigned char));
 }
 
 bool Image_JPEG::flipv()
