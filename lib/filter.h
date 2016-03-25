@@ -80,7 +80,7 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
 
   // utility methods
   T * get_kernel() { return kernel; }
-  bool set_kernel(T * src, int size;)
+  bool set_kernel(T * src, int size)
   {
     if (size <= 0) return false;
     if (kernel)
