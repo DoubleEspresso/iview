@@ -1,24 +1,68 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <algorithm>
 
 #include "image.h"
 #include "stringutils.h"
 
-Image::Image()
+Image::Image() :
+  _height(0), _width(0), _comps(0), 
+  _size(0), data(0), jpeg_handle(0), filter(0)
 {
 }
 
 Image::Image(uint w, uint h) : 
-  _height(h), _width(w), _comps(0), 
-  _size(0), data(0), jpeg_handle(0)
-{ 
-  if (!jpeg_handle) jpeg_handle = new Image_JPEG();
+  _height(h), _width(w), _comps(3), 
+  _size(0), data(0), jpeg_handle(0), filter(0)
+{
+  init(w,h,3);
 }
 
 Image::~Image() 
 {
+  if (filter)
+    {
+      delete filter; filter = 0;
+    }
   if (jpeg_handle) { delete jpeg_handle; jpeg_handle = 0; }
-  if (data) { delete[] data; data = 0; }  
+  if (data)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete data[j]; data[j] = 0;
+	}
+      delete[] data; data = 0;
+    }  
+}
+
+bool Image::clear()
+{
+  _size = _width = _height = _comps = 0;
+  if (jpeg_handle) { delete jpeg_handle; jpeg_handle = 0; }
+  if (data)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete data[j]; data[j] = 0;
+	}
+      delete[] data; data = 0;
+    }
+  return true;
+}
+
+bool Image::init(int w, int h, int c)
+{
+  if (_size <= 0 ) return false;
+  if (data) clear();
+  _width = w; _height = h; _comps = c; _size = w * h;
+
+  // TODO: check if mem available
+  data = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    {
+      data[j] = new Pixel<float>(0,0,0);
+    }
+  return true;
 }
 
 bool Image::load(char * filename)
@@ -31,16 +75,21 @@ bool Image::load(char * filename)
   //im_type = JPEG;
   //if (im_type == JPEG)
   //{
-
+  clear();
   if (!jpeg_handle) jpeg_handle = new Image_JPEG();
   bool ok = jpeg_handle->load_jpeg(filename);
   _width = jpeg_handle->width();
   _height = jpeg_handle->height();
   _comps = jpeg_handle->comps();
-  _size = jpeg_handle->size();
-  if (data) { delete [] data; data = 0; }
-  data = new unsigned char [_size];
-  memcpy(data, jpeg_handle->img_data(), _size * sizeof(unsigned char));
+  _size = _width * _height; //jpeg_handle->size();
+  init(_width, _height, _comps);
+
+  // copy jpeg data to member pixel array
+  unsigned char * tmp = jpeg_handle->img_data();
+  for (int j=0, idx=0; j<_size; ++j, idx+=3)
+    {
+      data[j]->set(tmp[idx], tmp[idx+1], tmp[idx+2]);
+    }  
   return ok;
 }
 
@@ -52,8 +101,13 @@ int Image::size()  { return _size; }
 
 bool Image::save(char * filename, uint quality)
 {
-  if(!jpeg_handle) return false;
-  jpeg_handle->copy_data(data, _width, _height, _comps);  
+  if(!jpeg_handle) jpeg_handle = new Image_JPEG();//return false;
+  unsigned char * tmp = new unsigned char[_width * _height * _comps];
+  for (int j=0, idx=0; j < _width * _height; ++j, idx += 3)
+    {
+      tmp[idx] = data[j]->r; tmp[idx+1] = data[j]->g; tmp[idx+2] = data[j]->b;
+    }
+  jpeg_handle->copy_data(tmp, _width, _height, _comps);  
   return jpeg_handle->save_jpeg(filename, quality);
 }
 
@@ -78,70 +132,83 @@ bool Image::parse_type(char * ext)
 }
 
 
-char Image::convolve3(const char* image, float*kernel)
+void Image::sharpen(int kernel_size)
 {
-  float res = 0;
-  float sum = 0;
-  for (int i = 0; i < 9; ++i) // all components of the kernel
+  if (filter)
     {
-      res += kernel[i] * image[i];	  
-      sum += kernel[i];//(kernel[i] < 0 ? -kernel[i] : kernel[i]);
+      delete filter; filter = 0;
     }
-  return res / sum;
-}
 
-// nb. edits data in place!
-void Image::sharpen()
-{
-  float kernel[9] = { 0, -1, 0,
-		     -1,  5, -1,
-		      0, -1, 0 };
-  
-  /*
-float kernel[9] = { 0, 0, 0,
-		    0, 1, 0,
-		    0, 0, 0 };
-  */
-int stride = comps() * width();
-
-  int row_adjust[9] = { -1, -1, -1,
-			0, 0, 0,
-			1, 1, 1 };
-  int col_adjust[9] = { -comps(), 0, comps(),
-			-comps(), 0, comps(),
-			-comps(), 0, comps() };
-  printf("..dbg sharpen start\n");
-  for (int j=0; j< height(); ++j) // rows
+  switch(kernel_size)
     {
-      //printf("..row(%d)\n",j);
-      for (int i=0; i<stride; ++i) // cols
+    case 3: filter = new Filter<float>(Sharpen3x3); break;
+    case 5: filter = new Filter<float>(Sharpen5x5); break;
+    case 7: filter = new Filter<float>(Sharpen7x7); break;
+    }
+
+  int r = kernel_size;
+  float * kernel = filter->get_kernel();
+
+  // create storage for new image data
+  Pixel<float> ** result;
+  result = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+
+  // convolve based on kernel_size
+  for (int j = 0, ci = 0; j < _height; ++j)
+    {
+      for (int i=0; i < _width; ++i, ++ci)
 	{
-	  int center = j * stride + i;
-	  char tmp[9];
-	  for (int p = 0; p < 9; ++p)
-	    {	      	      
-	      int idx = wrap(stride, j, i, row_adjust[p], col_adjust[p]);
-	      tmp[p] = data[idx];
+	  float red = 0;
+	  float grn = 0;
+	  float blu = 0;
+	  
+	  // perform convolution over kernel
+	  for (int kh = 0, ki = 0; kh < r; ++kh)
+	    {
+	      for (int kw = 0; kw < r; ++kw, ++ki)		
+		{
+		  // wrapped central image idx
+		  int dx = -r/2 + kw; int dy = -r/2 + kh;
+		  int idx  = wrap(j+dy, _height) * _width + wrap(i+dx, _width);		  
+		  red += data[idx]->r * kernel[ki];
+		  grn += data[idx]->g * kernel[ki];
+		  blu += data[idx]->b * kernel[ki];		  
+		}
 	    }
-	  //printf("%d->%d\n",data[center], (unsigned char) convolve3(tmp,kernel));
-	  data[center] = (unsigned char)convolve3(tmp, kernel);
+	  clamp(red, grn, blu, 1, 0);
+	  result[ci]->set(red, grn, blu);
 	}
     }
 
+  for (int j=0; j<_size; ++j)
+    {
+      float r = result[j]->r; float g = result[j]->g; float b = result[j]->b;
+      data[j]->set(r,g,b);
+    }
+
+  if (result)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete result[j]; result[j] = 0;
+	}
+      delete[] result; result = 0;
+    }  
 }
 
-int Image::wrap(int stride, int row, int col, int drow, int dcol)
+void Image::clamp(float& r, float& g, float& b, float scale, float bias)
 {
-  if (row + drow < 0 || row + drow >= height())
-    {
-      row = (row + drow < 0 ? height()-1 : 0);
-    }
-  else row += drow;
-  if (col + dcol < 0 || col + dcol >= stride)
-    {
-      col = (col + dcol < 0 ? stride-1-(2-col) : dcol);
-    }
-  else col += dcol;
+  r = r * scale + bias; r = (r < 0 ? 0 : r) ; r = (r > 255 ? 255 : r);
+  g = g * scale + bias; g = (g < 0 ? 0 : g) ; g = (g > 255 ? 255 : g);
+  b = b * scale + bias; b = (b < 0 ? 0 : b) ; b = (b > 255 ? 255 : b);
+}
 
-  return stride * row + col;  
+int Image::wrap(int i, int max)
+{
+  i = i%max;
+  return (i < 0 ? i + max : i);
 }

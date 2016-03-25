@@ -19,7 +19,7 @@ int main(int argc, char * argv[])
  
       
       printf("..sharpen");
-      im->sharpen();
+      im->sharpen(3);
       //jptr->flipv();
       //jptr->rotate90();
       
