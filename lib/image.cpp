@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <algorithm>
+#include <math.h>
 
 #include "image.h"
 #include "stringutils.h"
+
 
 Image::Image() :
   _height(0), _width(0), _comps(0), 
@@ -132,32 +134,156 @@ bool Image::parse_type(char * ext)
 }
 
 
-void Image::sharpen(int kernel_size)
+void Image::sharpen(int ksize)
 {
   if (filter)
     {
       delete filter; filter = 0;
     }
 
-  switch(kernel_size)
+  switch(ksize)
     {
     case 3: filter = new Filter<float>(Sharpen3x3); break;
     case 5: filter = new Filter<float>(Sharpen5x5); break;
     case 7: filter = new Filter<float>(Sharpen7x7); break;
+    }  
+  convolve(filter->get_kernel(), filter->dim());  
+}
+
+void Image::sobel()
+{
+    if (filter)
+    {
+      delete filter; filter = 0;
     }
 
-  int r = kernel_size;
-  float * kernel = filter->get_kernel();
+    Pixel<float> ** resultX;
+    Pixel<float> ** resultY;
+    
+    filter = new Filter<float>(Sobel);
+    filter->set_sobelX();
 
-  // create storage for new image data
+    convolve(resultX, filter->get_kernel(), filter->dim());
+
+    filter->set_sobelY();
+    convolve(resultY, filter->get_kernel(), filter->dim());
+
+    for (int j=0; j<_size; ++j)
+      {
+	float r1 = resultX[j]->r; float g1 = resultX[j]->g; float b1 = resultX[j]->b;
+	float r2 = resultY[j]->r; float g2 = resultY[j]->g; float b2 = resultY[j]->b;
+	float r3 = sqrt(r1*r1 + r2*r2); float g3 = sqrt(g1*g1 + g2*g2); float b3 = sqrt(b1*b1+b2*b2);
+
+	clamp(r3,g3,b3);
+	data[j]->set(r3,g3,b3);
+      }
+
+    // cleanup
+    if (resultX)
+      {
+	for (int j=0; j<_size; ++j)
+	  {
+	    delete resultX[j]; resultX[j] = 0;
+	  }
+	delete[] resultX; resultX = 0;
+      }
+    if (resultY)
+      {
+	for (int j=0; j<_size; ++j)
+	  {
+	    delete resultY[j]; resultY[j] = 0;
+	  }
+	delete[] resultY; resultY = 0;
+      }
+}
+
+void Image::emboss(int ksize)
+{
+  if (filter)
+    {
+      delete filter; filter = 0;
+    }
+  
+  switch(ksize)
+    {
+    case 3: filter = new Filter<float>(Emboss3x3); break;
+    case 5: filter = new Filter<float>(Emboss5x5); break;
+    case 7: filter = new Filter<float>(Emboss7x7); break;
+    }  
+  convolve(filter->get_kernel(), filter->dim(), 1.0, 128.0);  
+}
+
+void Image::median(int r)
+{
   Pixel<float> ** result;
+  Pixel<float> ** plist;
+  result = new Pixel<float>*[_size];
+  plist = new Pixel<float>* [r*r];
+  for (int j=0; j<_size; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+  for (int j=0; j<r*r; ++j)
+    {
+      plist[j] = new Pixel<float>(0,0,0);
+    }
+  
+    for (int j = 0, ci = 0; j < _height; ++j)
+    {
+      for (int i=0; i < _width; ++i, ++ci)
+	{
+
+	  for (int kh = 0, ki = 0; kh < r; ++kh)
+	    {
+	      for (int kw = 0; kw < r; ++kw, ++ki)		
+		{
+		  int dx = -r/2 + kw; int dy = -r/2 + kh;
+		  int idx  = wrap(j+dy, _height) * _width + wrap(i+dx, _width);
+		  plist[ki] = data[idx];
+		}
+	    }	  
+	  result[ci]->set(select_median(plist, r*r));
+	}
+    }
+
+    // overwrite the current image data .. necessary?
+    for (int j=0; j<_size; ++j)
+      {
+	float r = result[j]->r; float g = result[j]->g; float b = result[j]->b;
+	data[j]->set(r,g,b);
+      }
+    
+    //cleanup
+    if (result)
+      {
+	for (int j=0; j<_size; ++j)
+	  {
+	    delete result[j]; result[j] = 0;
+	  }
+	delete[] result; result = 0;
+      }
+    if (plist)
+      {
+	for (int j=0; j<r*r; ++j)
+	  {
+	    delete plist[j]; plist[j] = 0;
+	  }
+	delete[] plist; plist = 0;
+      }
+}
+
+
+// pixel space convolution definitions
+bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
+		     float scale, float bias,
+		     float min, float max)
+{
   result = new Pixel<float>*[_size];
   for (int j=0; j<_size; ++j)
     {
       result[j] = new Pixel<float>(0,0,0);
     }
-
-  // convolve based on kernel_size
+  int r = kdim;
   for (int j = 0, ci = 0; j < _height; ++j)
     {
       for (int i=0; i < _width; ++i, ++ci)
@@ -166,7 +292,7 @@ void Image::sharpen(int kernel_size)
 	  float grn = 0;
 	  float blu = 0;
 	  
-	  // perform convolution over kernel
+	  // convolution over kernel
 	  for (int kh = 0, ki = 0; kh < r; ++kh)
 	    {
 	      for (int kw = 0; kw < r; ++kw, ++ki)		
@@ -179,17 +305,59 @@ void Image::sharpen(int kernel_size)
 		  blu += data[idx]->b * kernel[ki];		  
 		}
 	    }
-	  clamp(red, grn, blu, 1, 0);
+	  clamp(red, grn, blu, scale, bias, min, max);
+	  result[ci]->set(red, grn, blu);
+	}
+    }
+  return result;
+}
+
+bool Image::convolve(float * kernel, int kdim,
+		     float scale, float bias,
+		     float min, float max)
+{
+  // storage for new image data
+  Pixel<float> ** result;
+  result = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+  int r = kdim;
+
+  for (int j = 0, ci = 0; j < _height; ++j)
+    {
+      for (int i=0; i < _width; ++i, ++ci)
+	{
+	  float red = 0;
+	  float grn = 0;
+	  float blu = 0;
+	  
+	  // convolution over kernel
+	  for (int kh = 0, ki = 0; kh < r; ++kh)
+	    {
+	      for (int kw = 0; kw < r; ++kw, ++ki)		
+		{
+		  // wrapped central image idx
+		  int dx = -r/2 + kw; int dy = -r/2 + kh;
+		  int idx  = wrap(j+dy, _height) * _width + wrap(i+dx, _width);		  
+		  red += data[idx]->r * kernel[ki];
+		  grn += data[idx]->g * kernel[ki];
+		  blu += data[idx]->b * kernel[ki];		  
+		}
+	    }
+	  clamp(red, grn, blu, scale, bias, min, max);
 	  result[ci]->set(red, grn, blu);
 	}
     }
 
+  // overwrite the current image data .. necessary?
   for (int j=0; j<_size; ++j)
     {
       float r = result[j]->r; float g = result[j]->g; float b = result[j]->b;
       data[j]->set(r,g,b);
     }
-
+  
   if (result)
     {
       for (int j=0; j<_size; ++j)
@@ -197,18 +365,93 @@ void Image::sharpen(int kernel_size)
 	  delete result[j]; result[j] = 0;
 	}
       delete[] result; result = 0;
-    }  
+    }
+  return true;
 }
 
-void Image::clamp(float& r, float& g, float& b, float scale, float bias)
+
+/* image operations section */
+bool Image::rotate90()
 {
-  r = r * scale + bias; r = (r < 0 ? 0 : r) ; r = (r > 255 ? 255 : r);
-  g = g * scale + bias; g = (g < 0 ? 0 : g) ; g = (g > 255 ? 255 : g);
-  b = b * scale + bias; b = (b < 0 ? 0 : b) ; b = (b > 255 ? 255 : b);
+  if (!data || width() <= 1 || height() <= 1) return false;
+
+  // temp storage for rated image
+  Pixel<float> ** result;
+  result = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+  
+  for (int j = _width-1, idx = 0; j >= 0; --j)
+    {
+      for (int i=0; i < _height; ++i)
+	{
+	  int isrc = i * _width + j;
+	  result[idx++]->set(*data[isrc]);
+	}
+    }
+
+  // overwrite the current image data .. necessary?
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->set(*result[j]);
+    }
+  
+  if (result)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete result[j]; result[j] = 0;
+	}
+      delete[] result; result = 0;
+    }
+  int w = width();
+  _width = height(); 
+  _height = w;
+  return true;  
+}
+
+
+/* utilities section */
+void Image::clamp(float& r,
+		  float& g,
+		  float& b,
+		  float scale,
+		  float bias,
+		  float min,
+		  float max)
+{
+  r = r * scale + bias; r = (r < min ? min : r) ; r = (r > max ? max : r);
+  g = g * scale + bias; g = (g < min ? min : g) ; g = (g > max ? max : g);
+  b = b * scale + bias; b = (b < min ? min : b) ; b = (b > max ? max : b);
 }
 
 int Image::wrap(int i, int max)
 {
   i = i%max;
   return (i < 0 ? i + max : i);
+}
+
+Pixel<float> Image::select_median(Pixel<float> ** pixel_list, int sz)
+{
+  float *reds=new float[sz]; float *grns=new float[sz]; float * blus = new float[sz];
+  for (int j=0; j<sz; ++j)
+    {
+      reds[j] = pixel_list[j]->r; grns[j] = pixel_list[j]->g; blus[j] = pixel_list[j]->b;
+    }
+
+  // sort using a lambda expression (ascending vs descending won't matter for median)
+  std::sort(reds, reds+sz);
+  std::sort(grns, grns+sz);
+  std::sort(blus, blus+sz);
+    
+  int idx = sz/2;
+  Pixel<float> median;
+  median.set(reds[idx], grns[idx], blus[idx]);
+  {
+    delete [] reds; delete[] grns; delete[] blus;
+    reds = 0; grns = 0; blus = 0;
+  }
+  return median;
 }

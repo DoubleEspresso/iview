@@ -18,8 +18,11 @@ int main(int argc, char * argv[])
 	     jptr->size());
  
       
-      printf("..sharpen");
-      im->sharpen(3);
+      //im->sharpen(3);
+      //im->sobel();
+      //im->emboss(3);
+      //im->median(7);
+      im->rotate90();
       //jptr->flipv();
       //jptr->rotate90();
       

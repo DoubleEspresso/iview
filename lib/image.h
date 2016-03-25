@@ -4,10 +4,12 @@
 #include "image_jpeg.h"
 #include "filter.h"
 
+
 typedef unsigned long long u64;
 typedef unsigned int uint;
 typedef unsigned short u16;
 typedef unsigned char u8;
+
 
 template<typename T>
 struct Pixel
@@ -20,8 +22,8 @@ public:
   ~Pixel() {}
   
   void set(T rd, T gn, T bu) { r = rd; g = gn; b = bu; }
+  void set(const Pixel& p) { r = p.r; g = p.g; b = p.b; }
 };
-
 
 class Image
 {
@@ -40,22 +42,29 @@ class Image
   bool parse_type(char * ext);
   bool set(unsigned char * data);
 
-  // utility
+  // size info
   bool init(int w, int h, int c);
   bool clear();
   int comps();
   int width();
   int height();
   int size();
+
+  // pixel access/pointer handles
   Pixel<float> ** img_data() { return data; }
-  void clamp(float& r, float& g, float& b, float scale, float bias);
   Image_JPEG * get_handle() {return jpeg_handle;}
+  Pixel<float>* pixel(int idx) { return data[idx]; }
   void set(int idx, Pixel<float>& p) { data[idx]->set(p.r, p.g, p.b); }
   void set_red(int idx, float v) { data[idx]->r = v; }
   void set_green(int idx, float v) { data[idx]->g = v; }
   void set_blue(int idx, float v) { data[idx]->b = v; }
-  Pixel<float>* get(int idx) { return data[idx]; }
+  
+  // utilities/algorithms 
+  void clamp(float& r, float& g, float& b, float scale=1, float bias=0, float min=0, float max=255);
   int wrap(int i, int max);
+  bool convolve(float* kernel, int kdim, float scale=1, float bias=0, float min=0, float max=255);
+  bool convolve(Pixel<float> ** &result, float* kernel, int kdim, float scale=1, float bias=0, float min=0, float max=255);
+  Pixel<float> select_median(Pixel<float> ** pixel_list, int sz);
 
   // size/geometry manipulations
   bool crop();
@@ -65,11 +74,14 @@ class Image
   bool rotate90();
 
   // color operations
-  bool invert();  
-
-  // filters etc.
-  void sharpen(int kernel_size);
-
+  bool invert();
+  
+  // filter operations
+  void sharpen(int ksize);
+  void sobel();
+  void emboss(int ksize);
+  void median(int r);
+  
   // ffts
 };
 
