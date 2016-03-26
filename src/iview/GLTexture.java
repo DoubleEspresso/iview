@@ -41,6 +41,7 @@ public class GLTexture
 		textureBuffers = new int[1];
 		GL.glGenTextures(1, textureBuffers, 0);
 		texture_id = textureBuffers[0];
+		System.out.println("generated texture id " + texture_id);
 	}
 	
 	public void Sharpen(int size)
@@ -93,6 +94,19 @@ public class GLTexture
 		Bind();
 		TextureImage2D();
 		return ok;
+	}
+	
+	public Boolean gammaCorrection(float gr, float gg, float gb, float max, float scale, float bias)
+	{
+		Boolean ok = image.gammaCorrection(gr, gg, gb, max, scale, bias);
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
+	int Unsigned(byte b)
+	{
+		return (int) b & 0XFF;
 	}
 	
 	public void Bind() 

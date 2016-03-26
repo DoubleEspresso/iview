@@ -25,12 +25,18 @@ public:
   void set(const Pixel& p) { r = p.r; g = p.g; b = p.b; }
 };
 
+struct Gamma
+{
+  float r; float g; float b;
+};
+
 class Image
 {
   int _height, _width, _comps, _size;
   Pixel<float>** data;
   Image_JPEG * jpeg_handle;
   Filter<float> * filter;
+  Gamma gammas;
  public:
   Image(uint w, uint h);
   Image();
@@ -76,6 +82,9 @@ class Image
 
   // color operations
   bool invert();
+  float output_intensity(float I, float G, float max);
+  float input_intensity(float I, float G, float max);
+  bool gamma_correct(float gr, float gg, float gb, float max, float scale, float bias);
   
   // filter operations
   void sharpen(int ksize);

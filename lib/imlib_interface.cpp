@@ -72,5 +72,9 @@ extern "C"
   {
     return handle->get_texture_data(gldata, size);
   }
-  
+
+  bool gamma_correct(float gr, float gg, float gb, float max, float scale, float bias, Image * handle)
+  {
+    return handle->gamma_correct(gr, gg, gb, max, scale, bias);
+  }
 }

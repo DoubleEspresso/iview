@@ -21,4 +21,5 @@ public interface Libimage extends Library
 	public void emboss(int ksize, Pointer handle);
 	public void median(int r, Pointer handle);
 	public Boolean texture_data(byte[] data, int size, Pointer handle);
+	public Boolean gamma_correct(float gr, float gg, float gb, float max, float scale, float bias, Pointer handle);
 }

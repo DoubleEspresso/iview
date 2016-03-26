@@ -3,6 +3,7 @@ package iview;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.opengl.GLCanvas;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -44,7 +45,7 @@ public class Iview
 		attachRightClickMenu(imgPane.glcontext, imgPane.glcanvas);
 		
 		// TODO: drag & drop event
-		while (!imgPane.shell.isDisposed())
+		while (!imgPane.display.isDisposed())
 		{
 			//if (!imgPane.display.isDisposed()) imgPane.glcanvas.redraw(); 
 			if (!imgPane.display.readAndDispatch()) imgPane.display.sleep();
@@ -63,8 +64,14 @@ public class Iview
 	{
         imgPane = new ImagePane(new Display(), "iview", 640, 480);
 	}
-
-
+	
+	public static void UpdateGamma(float gr, float gg, float gb)
+	{
+		System.out.println("..update gamma");
+		imgPane.texture.gammaCorrection(gr, gg, gb, 255f, 1f, 0f);
+		imgPane.refresh();
+	}
+	
 	private static void attachRightClickMenu(final GLContext glcontext, final GLCanvas glcanvas)
 	{
 		// new file selection
@@ -125,6 +132,19 @@ public class Iview
 
 				Histogram h = new Histogram(imgPane.texture.image, 0);
 				new GLHistogram(imgPane.display, "histogram", 450, 180, h.Bins());
+			}
+		});
+		
+		// gamma correction
+		MenuItem gamma = new MenuItem(popupMenu, SWT.NONE);
+		gamma.setText("&Gamma Correction");
+		gamma.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;	
+				//UpdateGamma(0.1f, 0.1f, 0.1f);
+				new GammaCorrection(imgPane.display, "gamma correction", 255, 255);			
 			}
 		});
 		
@@ -193,7 +213,10 @@ public class Iview
 
 		glcanvas.setMenu(popupMenu);	
 	}
+	
+	public static ImagePane getPane() { return imgPane; }
 }
+
 
 
 class ImagePane extends GLWindow
@@ -239,6 +262,11 @@ class ImagePane extends GLWindow
 		else gl2.glTranslatef((float) ( Translate.x)  , (float) ( Translate.y), 0f);
 	}
 	
+//	public void gammaCorrect(float gr, float gg, float gb, float max, float scale, float bias)
+//	{
+//		texture.gammaCorrection(gr, gg, gb, max, scale, bias);
+//		refresh();
+//	}
 	
 	public void paint(GL2 gl2, int width, int height)
 	{

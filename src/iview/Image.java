@@ -7,6 +7,7 @@ public class Image
 	Pointer image_handle;
 //	ImagePlugin Plugin = null;
 	ByteBuffer pixelData;
+	ByteBuffer colorData;
 	Boolean initialized = false;
 	String filename = null;
 	Object pluginInstance = null;
@@ -141,8 +142,7 @@ public class Image
 			return false;
 		}
 
-		pixelData = ByteBuffer.wrap(gldata);// gldata.getByteBuffer(0,
-											// data_size);
+		pixelData = ByteBuffer.wrap(gldata);											
 		pixelData.position(0);
 		AspecRatio = (float) Libimage.instance.width(image_handle) / (float) Libimage.instance.height(image_handle);
 		width = Libimage.instance.width(image_handle);
@@ -179,5 +179,12 @@ public class Image
 		width = Libimage.instance.width(image_handle);
 		height = Libimage.instance.height(image_handle);			
 		updatePixelData(); 
+	}
+	
+	public Boolean gammaCorrection(float gr, float gg, float gb, float max, float scale, float bias)
+	{
+		Boolean ok = Libimage.instance.gamma_correct(gr, gg, gb, max, scale, bias, image_handle);
+		updatePixelData();
+		return ok;
 	}
 }

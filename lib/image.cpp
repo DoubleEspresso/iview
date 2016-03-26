@@ -11,12 +11,14 @@ Image::Image() :
   _height(0), _width(0), _comps(0), 
   _size(0), data(0), jpeg_handle(0), filter(0)
 {
+  gammas.r = 1; gammas.b = 1; gammas.g = 1;
 }
 
 Image::Image(uint w, uint h) : 
   _height(h), _width(w), _comps(3), 
   _size(0), data(0), jpeg_handle(0), filter(0)
 {
+  gammas.r = 1; gammas.b = 1; gammas.g = 1;
   init(w,h,3);
 }
 
@@ -55,8 +57,18 @@ bool Image::clear()
 bool Image::init(int w, int h, int c)
 {
   if (_size <= 0 ) return false;
+  int oldsz = _size;
   if (data) clear();
   _width = w; _height = h; _comps = c; _size = w * h;
+
+  if (data)
+    {
+      for(int j=0; j<oldsz; ++j)
+	{
+	  delete data[j]; data[j] =0;	  
+	}
+      delete [] data; data = 0;
+    }
 
   // TODO: check if mem available
   data = new Pixel<float>*[_size];
@@ -121,7 +133,8 @@ bool Image::save(char * filename, uint quality)
     {
       tmp[idx] = data[j]->r; tmp[idx+1] = data[j]->g; tmp[idx+2] = data[j]->b;
     }
-  jpeg_handle->copy_data(tmp, _width, _height, _comps);  
+  jpeg_handle->copy_data(tmp, _width, _height, _comps);
+  { delete [] tmp; tmp = 0; }
   return jpeg_handle->save_jpeg(filename, quality);
 }
 
@@ -235,6 +248,7 @@ void Image::median(int r)
     {
       result[j] = new Pixel<float>(0,0,0);
     }
+
   for (int j=0; j<r*r; ++j)
     {
       plist[j] = new Pixel<float>(0,0,0);
@@ -251,7 +265,7 @@ void Image::median(int r)
 		{
 		  int dx = -r/2 + kw; int dy = -r/2 + kh;
 		  int idx  = wrap(j+dy, _height) * _width + wrap(i+dx, _width);
-		  plist[ki] = data[idx];
+		  plist[ki]->set(*data[idx]);
 		}
 	    }	  
 	  result[ci]->set(select_median(plist, r*r));
@@ -264,24 +278,36 @@ void Image::median(int r)
 	float r = result[j]->r; float g = result[j]->g; float b = result[j]->b;
 	data[j]->set(r,g,b);
       }
-    
+
     //cleanup
     if (result)
       {
 	for (int j=0; j<_size; ++j)
 	  {
-	    delete result[j]; result[j] = 0;
+	    if (result[j])
+	      {
+		delete result[j]; result[j] = 0;
+	      }
 	  }
-	delete[] result; result = 0;
+	if (result)
+	  {
+	    delete[] result; result = 0;
+	  }
       }
     if (plist)
       {
 	for (int j=0; j<r*r; ++j)
 	  {
-	    delete plist[j]; plist[j] = 0;
+	    if (plist[j])
+	    {
+		delete plist[j]; plist[j] = 0;
+	    }
 	  }
-	delete[] plist; plist = 0;
-      }
+	if (plist)
+	{
+	  delete[] plist; plist = 0;
+	  }
+	}
 }
 
 
@@ -425,6 +451,33 @@ bool Image::rotate90()
 }
 
 
+
+/* color operations section */
+float Image::input_intensity(float I, float G, float max)
+{
+  return (float) (max * pow(I / max, 1/G)); 
+}
+float Image::output_intensity(float I, float G, float max)
+{
+  return (float) ( max * pow( I / max, G ) );
+}
+
+bool Image::gamma_correct(float gr, float gg, float gb, float max, float scale, float bias)
+{
+  for (int j=0; j < _size; ++j)
+    {
+      
+      float r = output_intensity(input_intensity(data[j]->r, gammas.r, max), gr, max);
+      float g = output_intensity(input_intensity(data[j]->g, gammas.g, max), gg, max);
+      float b = output_intensity(input_intensity(data[j]->b, gammas.b, max), gb, max);
+      clamp(r, g, b, scale, bias);
+      data[j]->r = r; data[j]->g = g; data[j]->b = b;
+    }
+  gammas.r = gr; gammas.g = gg; gammas.b = gb;
+  return true;
+}
+
+
 /* utilities section */
 void Image::clamp(float& r,
 		  float& g,
@@ -452,12 +505,10 @@ Pixel<float> Image::select_median(Pixel<float> ** pixel_list, int sz)
     {
       reds[j] = pixel_list[j]->r; grns[j] = pixel_list[j]->g; blus[j] = pixel_list[j]->b;
     }
-
   // sort using a lambda expression (ascending vs descending won't matter for median)
   std::sort(reds, reds+sz);
   std::sort(grns, grns+sz);
   std::sort(blus, blus+sz);
-    
   int idx = sz/2;
   Pixel<float> median;
   median.set(reds[idx], grns[idx], blus[idx]);

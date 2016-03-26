@@ -177,13 +177,17 @@ bool Image_JPEG::save_jpeg(char * fname, uint quality)
   unsigned char * width_buffer = new unsigned char[cinfo.image_width * cinfo.input_components];
   while (cinfo.next_scanline < cinfo.image_height)
     {
-      for (int j=0; j< cinfo.image_width * cinfo.input_components; ++j) width_buffer[j] = data[line_count * row_stride + j];
+      for (unsigned int j=0; j< cinfo.image_width * cinfo.input_components; ++j) width_buffer[j] = data[line_count * row_stride + j];
       row_pointer[0] = width_buffer;
       //row_pointer[0] = &buffer[cinfo.next_scanline * row_stride];
       jpeg_write_scanlines(&cinfo, row_pointer, 1);
       ++line_count;
     }
 
+  if (width_buffer)
+    {
+      delete [] width_buffer; width_buffer = 0;
+    }
   jpeg_finish_compress(&cinfo);
   fclose(outfile);
   jpeg_destroy_compress(&cinfo);

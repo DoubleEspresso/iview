@@ -20,9 +20,11 @@ int main(int argc, char * argv[])
       
       //im->sharpen(3);
       //im->sobel();
-      //im->emboss(3);
-      //im->median(7);
-      im->rotate90();
+      im->median(3);
+      im->median(3);
+      im->median(3);
+      im->sharpen(3);
+      //im->rotate90();
       //jptr->flipv();
       //jptr->rotate90();
       
@@ -39,5 +41,6 @@ int main(int argc, char * argv[])
     {
       printf("..failed to load test image\n");
     }
+  delete im; im = 0;
   return 0;
 }

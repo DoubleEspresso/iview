@@ -28,7 +28,7 @@ public abstract class GLWindow
 {
 
 	public Display display = null;
-	public Shell shell = null;
+	//public Shell shell = null;
 	public Composite composite = null;
 	public GLCanvas glcanvas = null;
 	public GLContext glcontext = null;
@@ -42,7 +42,7 @@ public abstract class GLWindow
 	public GLWindow(Display parent, String title, int w, int h)
 	{
 		display = parent;
-        shell = new Shell( display );
+        final Shell shell = new Shell( parent );
         shell.setText( title );
         shell.setLayout( new FillLayout() );
         width = w;
@@ -73,6 +73,16 @@ public abstract class GLWindow
         	addDoubleClickListener();
         	addPaintListener();
         	addKeyListener();
+        	
+
+    		shell.addListener(SWT.Close, new Listener() 
+            { 
+               @Override 
+               public void handleEvent(Event event) 
+               {  
+                  shell.dispose(); 
+               } 
+            });
         }
         
         is_initialized = true;
@@ -256,8 +266,7 @@ public abstract class GLWindow
 					glcontext.makeCurrent();					
 					paint(getGL2instance(), r.width, r.height);					
 					glcanvas.swapBuffers();
-					glcontext.release();
-					
+					glcontext.release();					
 				}
 			}			
 		});
@@ -275,8 +284,7 @@ public abstract class GLWindow
         gl2.glClearColor(0f, 0f, 0f, 0f);
         gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT); // helps to stop flickering on resize        
         gl2.glLoadIdentity();               
-        gl2.glOrtho(0, w, h, 0, 0, 1);
-        
+        gl2.glOrtho(0, w, h, 0, 0, 1);        
         gl2.glMatrixMode(GL2.GL_MODELVIEW);
         gl2.glViewport( 0, 0, w, h);        
 	}
