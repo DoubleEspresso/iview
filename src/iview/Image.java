@@ -1,10 +1,11 @@
 package iview;
 import java.nio.ByteBuffer;
-
+import com.sun.jna.Pointer;
 
 public class Image
 {
-	ImagePlugin Plugin = null;
+	Pointer image_handle;
+//	ImagePlugin Plugin = null;
 	ByteBuffer pixelData;
 	Boolean initialized = false;
 	String filename = null;
@@ -17,11 +18,12 @@ public class Image
 	
 	public Image(String fname)
 	{
+		image_handle = Libimage.instance.image_instance();
 		filename = fname;
-		Plugin = new ImagePlugin(filename);
-		if (!Plugin.Initialized()) return;
-		pluginInstance = Plugin.getInstance();
-		pluginType = Plugin.getType();
+//		Plugin = new ImagePlugin(filename);
+//		if (!Plugin.Initialized()) return;
+//		pluginInstance = Plugin.getInstance();
+//		pluginType = Plugin.getType();
 		initialized = true;
 	}
 	
@@ -31,20 +33,10 @@ public class Image
 	{
 		try 
 		{
-			if (!Plugin.Initialized()) {
-				System.out.println("..rotate called when not initialized");
-				return false;
-		}
-			pluginInstance = Plugin.getInstance();
-			pluginType = Plugin.getType();
-			JPEG jimg = ((JPEG) pluginInstance);
-			Boolean ok = jimg.rotate90();
-			width = jimg.width();
-			height = jimg.height();
-			pixelData = jimg.data().getByteBuffer(0, jimg.size());			
-			pixelData.position(0);
-			AspecRatio = (float) jimg.width() / (float) jimg.height();
-
+			Boolean ok = Libimage.instance.rotate90(image_handle);
+			width = Libimage.instance.width(image_handle);
+			height = Libimage.instance.height(image_handle);			
+			updatePixelData();
 			return ok; 
 		} 
 		catch (Exception any) {
@@ -57,19 +49,8 @@ public class Image
 	{
 		try 
 		{
-			if (!Plugin.Initialized()) 
-			{
-				System.out.println("..flipv called when not initialized");
-				return false;
-			}
-			pluginInstance = Plugin.getInstance();
-			pluginType = Plugin.getType();
-			JPEG jimg = ((JPEG) pluginInstance);
-			Boolean ok = jimg.flipv();
-			pixelData = jimg.data().getByteBuffer(0, jimg.size());			
-			pixelData.position(0);
 			
-			return ok; 
+			return false; 
 		} 
 		catch (Exception any) {
 			System.out.println("..exception calling rotate " + any.getMessage());
@@ -81,19 +62,7 @@ public class Image
 	{
 		try 
 		{
-			if (!Plugin.Initialized()) 
-			{
-				System.out.println("..fliph called when not initialized");
-				return false;
-			}
-			pluginInstance = Plugin.getInstance();
-			pluginType = Plugin.getType();
-			JPEG jimg = ((JPEG) pluginInstance);
-			Boolean ok = jimg.fliph();
-			pixelData = jimg.data().getByteBuffer(0, jimg.size());			
-			pixelData.position(0);
-			
-			return ok; 
+			return false;
 		} 
 		catch (Exception any) {
 			System.out.println("..exception calling rotate " + any.getMessage());
@@ -111,11 +80,21 @@ public class Image
 		}
 		try
 		{
-			if (!InitJPG())
+
+			if (image_handle == null)
 			{
-				System.out.println("..image initJPEG() failed.") ;
+				System.out.println("..image instance null in Load()");
 				return false;
 			}
+
+			if (!Libimage.instance.load(filename, image_handle))
+			{
+				System.out.println("..image lib load failed!");
+				return false;
+			}
+
+			updatePixelData();
+
 			// TODO: fix this switch statement (not working now).
 //			switch (pluginType)
 //			{
@@ -150,32 +129,55 @@ public class Image
 	int Components() { return components; }
 	int Size() { return width * height * components; }
 	
-	Boolean InitJPG()
+	Boolean updatePixelData()
 	{
-		if (pluginInstance == null) 
+		int data_size = Libimage.instance.size(image_handle)
+				* Libimage.instance.comps(image_handle);
+		byte[] gldata = new byte[data_size]; // 1 char = 4 bytes
+		if (!Libimage.instance
+				.texture_data(gldata, data_size, image_handle))
 		{
-			System.out.println("..plugin instance null in InitJPG()");
+			System.out.println("..failed to get image texture data!");
 			return false;
 		}
-		try
-		{
-			JPEG jimage = ((JPEG) pluginInstance);
 
-			if (!jimage.load(filename)) return false;
-
-			pixelData = jimage.data().getByteBuffer(0, jimage.size());
-			
-			pixelData.position(0);
-			AspecRatio = (float) jimage.width() / (float) jimage.height();
-			width = jimage.width();
-			height = jimage.height();
-			components = jimage.components();
-		}
-		catch (Exception any)
-		{
-			System.out.println("..jpeg init exception " + any.getMessage());
-			return false;
-		}
+		pixelData = ByteBuffer.wrap(gldata);// gldata.getByteBuffer(0,
+											// data_size);
+		pixelData.position(0);
+		AspecRatio = (float) Libimage.instance.width(image_handle) / (float) Libimage.instance.height(image_handle);
+		width = Libimage.instance.width(image_handle);
+		height = Libimage.instance.height(image_handle);
+		components = Libimage.instance.comps(image_handle);
 		return true;
+	}
+	
+	public void sharpen(int size)
+	{
+		Libimage.instance.sharpen(size, image_handle);
+		width = Libimage.instance.width(image_handle);
+		height = Libimage.instance.height(image_handle);			
+		updatePixelData();
+	}
+	public void sobel()
+	{
+		Libimage.instance.sobel(image_handle);
+		width = Libimage.instance.width(image_handle);
+		height = Libimage.instance.height(image_handle);			
+		updatePixelData();
+
+	}
+	public void emboss(int ksize)
+	{
+		Libimage.instance.emboss(ksize, image_handle);
+		width = Libimage.instance.width(image_handle);
+		height = Libimage.instance.height(image_handle);			
+		updatePixelData(); 
+	}
+	public void median(int r)
+	{
+		Libimage.instance.median(r, image_handle);
+		width = Libimage.instance.width(image_handle);
+		height = Libimage.instance.height(image_handle);			
+		updatePixelData(); 
 	}
 }

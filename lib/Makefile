@@ -6,15 +6,16 @@ LFLAGS = -L../../external/jpeg/lib64 -ljpeg
 INCS +=-I../../external/jpeg/src
 CFLAGS = -Wall -fPIC -O3 -g -m64 $(INCS)
 
-SRCS = image.cpp image_jpeg.cpp stringutils.cpp jpeg_interface.cpp 
+SRCS = image.cpp image_jpeg.cpp stringutils.cpp jpeg_interface.cpp imlib_interface.cpp
 OBJS = $(SRCS:.cpp=.o)
 LIBJPEG_OBJS = image_jpeg.o jpeg_interface.o 
+LIBIMAGE_OBJS = image.o image_jpeg.o imlib_interface.o
 
 TESTSRCS = main.cpp image.cpp image_jpeg.cpp stringutils.cpp
 TESTOBJS = $(TESTSRCS:.cpp=.o)
 
 .PHONY: all
-all: libimgJpeg.so libiview.so
+all: libimgJpeg.so libimage.so
 
 .PHONY: jpeg
 jpeg: libimgJpeg.so
@@ -36,6 +37,9 @@ libimgJpeg.so: ${LIBJPEG_OBJS}
 
 libiview.so: ${OBJS}
 	$(CXX) -I../../external/jpeg/src -shared -Wl,-soname,libiview.so -o $@ $^ $(LFLAGS)
+
+libimage.so: ${LIBIMAGE_OBJS}
+	$(CXX) -I../../external/jpeg/src -shared -Wl,-soname,libimage.so -o $@ $^ $(LFLAGS)
 
 debug.exe: ${TESTOBJS}
 	$(CXX) -I../../external/jpeg/src -o $@ $^ $(LFLAGS)

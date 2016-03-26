@@ -100,6 +100,18 @@ int Image::width() { return _width; }
 int Image::height(){ return _height;}
 int Image::size()  { return _size; }
 
+bool Image::get_texture_data(unsigned char * gldata, int size)
+{
+  if (!gldata) return false;
+  if (size != _size * _comps) return false;
+  for (int j=0, i =0; j<_size; ++j, i+=comps())
+    {
+      gldata[i] = data[j]->r;
+      gldata[i+1] = data[j]->g;
+      gldata[i+2] = data[j]->b;
+    }
+  return true;
+}
 
 bool Image::save(char * filename, uint quality)
 {

@@ -114,7 +114,6 @@ public class Iview
 				System.out.println("save file..");
 			}
 		});
-		
 		// histogram
 		MenuItem histo = new MenuItem(popupMenu, SWT.NONE);
 		histo.setText("&Histogram");
@@ -126,6 +125,58 @@ public class Iview
 
 				Histogram h = new Histogram(imgPane.texture.image, 0);
 				new GLHistogram(imgPane.display, "histogram", 450, 180, h.Bins());
+			}
+		});
+		
+		// sharpen filter
+		MenuItem sharpen_filter = new MenuItem(popupMenu, SWT.NONE);
+		sharpen_filter.setText("&Sharpen");
+		sharpen_filter.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Sharpen(3);
+				imgPane.refresh();
+			}
+		});
+		
+		// sobel filter
+		MenuItem sobel_filter = new MenuItem(popupMenu, SWT.NONE);
+		sobel_filter.setText("&Sobel");
+		sobel_filter.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Sobel();
+				imgPane.refresh();
+			}
+		});
+		
+		// emboss filter
+		MenuItem emboss_filter = new MenuItem(popupMenu, SWT.NONE);
+		emboss_filter.setText("&Emboss");
+		emboss_filter.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Emboss(3);
+				imgPane.refresh();
+			}
+		});
+		
+		// median filter
+		MenuItem median_filter = new MenuItem(popupMenu, SWT.NONE);
+		median_filter.setText("&Median");
+		median_filter.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Median(3);
+				imgPane.refresh();
 			}
 		});
 		

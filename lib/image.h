@@ -58,6 +58,7 @@ class Image
   void set_red(int idx, float v) { data[idx]->r = v; }
   void set_green(int idx, float v) { data[idx]->g = v; }
   void set_blue(int idx, float v) { data[idx]->b = v; }
+  bool get_texture_data(unsigned char * gldata, int size);
   
   // utilities/algorithms 
   void clamp(float& r, float& g, float& b, float scale=1, float bias=0, float min=0, float max=255);

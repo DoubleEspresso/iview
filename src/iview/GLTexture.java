@@ -43,6 +43,34 @@ public class GLTexture
 		texture_id = textureBuffers[0];
 	}
 	
+	public void Sharpen(int size)
+	{
+		image.sharpen(size);
+		Bind();
+		TextureImage2D();
+	}
+	
+	public void Median(int size)
+	{
+		image.median(size);
+		Bind();
+		TextureImage2D();
+	}
+	
+	public void Emboss(int size)
+	{
+		image.emboss(size);
+		Bind();
+		TextureImage2D();
+	}
+	
+	public void Sobel()
+	{
+		image.sobel();
+		Bind();
+		TextureImage2D();
+	}
+	
 	public Boolean Rotate()
 	{
 		Boolean ok = image.Rotate90();
