@@ -187,4 +187,10 @@ public class Image
 		updatePixelData();
 		return ok;
 	}
+	
+	public Boolean save(String fname)
+	{
+		Libimage.instance.save(fname, 100, image_handle);
+		return true;
+	}
 }

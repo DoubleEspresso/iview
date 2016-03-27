@@ -141,7 +141,10 @@ public class GammaCorrection extends GLWindow
 			selectedGreen = false;
 			selectedBlue = false;
 			refresh();
-			//Iview.UpdateGamma(RedGamma, GrnGamma, BluGamma);//, 255f, 1f, 0f);
+			Iview.gammaRed = RedGamma;
+			Iview.gammaGrn = GrnGamma;
+			Iview.gammaBlu = BluGamma;
+			Iview.UpdateGamma(RedGamma, GrnGamma, BluGamma);//, 255f, 1f, 0f);
 			//Iview.imgPane.refresh();
 		}
 	}
@@ -157,6 +160,10 @@ public class GammaCorrection extends GLWindow
 			else if (selectedGreen) updateGreen();
 			else if (selectedBlue) updateBlue();						
 			refresh();
+			Iview.gammaRed = RedGamma;
+			Iview.gammaGrn = GrnGamma;
+			Iview.gammaBlu = BluGamma;
+			Iview.UpdateGamma(RedGamma, GrnGamma, BluGamma);//, 255f, 1f, 0f);
 		}
 	}
 	private void updateRed()

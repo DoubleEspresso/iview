@@ -1,9 +1,11 @@
 package iview;
 
+
+import java.io.File;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.opengl.GLCanvas;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
@@ -11,6 +13,7 @@ import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL2;
@@ -65,11 +68,22 @@ public class Iview
         imgPane = new ImagePane(new Display(), "iview", 640, 480);
 	}
 	
+	public static float gammaRed = 1;
+	public static float gammaGrn = 1;
+	public static float gammaBlu = 1;
+	
 	public static void UpdateGamma(float gr, float gg, float gb)
 	{
-		System.out.println("..update gamma");
-		imgPane.texture.gammaCorrection(gr, gg, gb, 255f, 1f, 0f);
-		imgPane.refresh();
+	    Display.getDefault().asyncExec(new Runnable() {
+	        @Override
+	        public void run() {
+	        	imgPane.glcanvas.setCurrent();
+	    		imgPane.glcontext.makeCurrent();
+	    		imgPane.texture.gammaCorrection(gammaRed, gammaGrn, gammaBlu, 255f, 1f, 0f);
+	    		imgPane.refresh();
+	    		imgPane.glcontext.release();
+	        }
+	      });
 	}
 	
 	private static void attachRightClickMenu(final GLContext glcontext, final GLCanvas glcanvas)
@@ -118,7 +132,17 @@ public class Iview
 		{
 			public void handleEvent(Event e)
 			{
-				System.out.println("save file..");
+				FileDialog dialog = new FileDialog(browserShell, SWT.SAVE);
+				String filename = dialog.open();
+				File file = new File(filename);
+		        if (file.exists()) 
+		        {
+		          MessageBox mb = new MessageBox(dialog.getParent(), SWT.ICON_WARNING | SWT.YES | SWT.NO);
+		          mb.setMessage(filename + " exists. Do you want to replace it?");
+		          if (mb.open() == SWT.NO) return;	
+		          imgPane.texture.image.save(filename);
+		          
+		        }
 			}
 		});
 		// histogram
@@ -207,7 +231,7 @@ public class Iview
 		{
 			public void handleEvent(Event e)
 			{
-				System.out.println("exit..");
+				imgPane.display.dispose();
 			}
 		});
 
