@@ -85,6 +85,7 @@ class Image
   float output_intensity(float I, float G, float max);
   float input_intensity(float I, float G, float max);
   bool gamma_correct(float gr, float gg, float gb, float max, float scale, float bias);
+  bool convert_gs();
   
   // filter operations
   void sharpen(int ksize);

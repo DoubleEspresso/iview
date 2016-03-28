@@ -187,6 +187,13 @@ public class Image
 		updatePixelData();
 		return ok;
 	}
+	 
+	public Boolean grayScale()
+	{
+		Boolean ok = Libimage.instance.gray_scale(image_handle);
+		updatePixelData();
+		return ok;
+	}
 	
 	public Boolean save(String fname)
 	{

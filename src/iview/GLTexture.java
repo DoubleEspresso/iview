@@ -96,6 +96,14 @@ public class GLTexture
 		return ok;
 	}
 	
+	public Boolean Grayscale()
+	{
+		Boolean ok = image.grayScale();
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
 	public Boolean gammaCorrection(float gr, float gg, float gb, float max, float scale, float bias)
 	{
 		Boolean ok = image.gammaCorrection(gr, gg, gb, max, scale, bias);

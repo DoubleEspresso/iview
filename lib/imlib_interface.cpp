@@ -77,4 +77,9 @@ extern "C"
   {
     return handle->gamma_correct(gr, gg, gb, max, scale, bias);
   }
+
+  bool gray_scale(Image * handle)
+  {
+    return handle->convert_gs();
+  }
 }

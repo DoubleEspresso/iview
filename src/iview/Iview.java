@@ -172,6 +172,19 @@ public class Iview
 			}
 		});
 		
+		// grayscale correction
+		MenuItem grayscale = new MenuItem(popupMenu, SWT.NONE);
+		grayscale.setText("&Grayscale");
+		grayscale.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Grayscale();
+				imgPane.refresh();							
+			}
+		});
+		
 		// sharpen filter
 		MenuItem sharpen_filter = new MenuItem(popupMenu, SWT.NONE);
 		sharpen_filter.setText("&Sharpen");

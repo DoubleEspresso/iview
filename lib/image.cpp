@@ -477,6 +477,17 @@ bool Image::gamma_correct(float gr, float gg, float gb, float max, float scale, 
   return true;
 }
 
+bool Image::convert_gs()
+{
+  for (int j=0; j<_size; ++j)
+    {
+      float r = data[j]->r; float g = data[j]->g; float b = data[j]->b;
+      float nc = sqrt(r*r + g*g + b*b);
+      clamp(nc, nc, nc);
+      data[j]->set(nc, nc, nc);
+    }
+  return true;
+}
 
 /* utilities section */
 void Image::clamp(float& r,

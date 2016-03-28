@@ -18,7 +18,8 @@
 	<classpathentry kind="lib" path="/usr/lib/eclipse/plugins/org.eclipse.jface.text_3.8.1.dist.jar"/>
 	<classpathentry kind="lib" path="/usr/lib/eclipse/plugins/org.eclipse.core.commands_3.6.1.dist.jar"/>
 	<classpathentry kind="lib" path="/usr/lib/eclipse/plugins/org.eclipse.equinox.common_3.6.100.dist.jar"/>
-	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/org.eclipse.swt/swt.jar"/>
-	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/jogl/jogl-2.4-b1473-20151117-linux-amd64/jar/jogl-all.jar"/>
+	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/swt/swt.jar"/>
+	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/jogl/jar/jogl-all.jar"/>
+	<classpathentry kind="lib" path="/home/mjg/java-workspace/external/jogl/jar/gluegen-rt.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
