@@ -310,6 +310,20 @@ void Image::median(int r)
 	}
 }
 
+void Image::gauss(int ksize, float sigma)
+{
+  switch(ksize)
+    {
+    case 3: filter = new Filter<float>(Gauss3x3); 
+      filter->set_gauss3x3(sigma); break;
+    case 5: filter = new Filter<float>(Gauss5x5); 
+      filter->set_gauss5x5(sigma); break;
+    case 7: filter = new Filter<float>(Gauss7x7); 
+      filter->set_gauss7x7(sigma); break;
+    }  
+  convolve(filter->get_kernel(), filter->dim());  
+}
+
 
 // pixel space convolution definitions
 bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
@@ -347,6 +361,7 @@ bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
 	  result[ci]->set(red, grn, blu);
 	}
     }
+  if (filter) { delete filter; filter = 0; }
   return result;
 }
 
@@ -404,6 +419,7 @@ bool Image::convolve(float * kernel, int kdim,
 	}
       delete[] result; result = 0;
     }
+  if (filter) { delete filter; filter = 0; }
   return true;
 }
 
@@ -529,3 +545,19 @@ Pixel<float> Image::select_median(Pixel<float> ** pixel_list, int sz)
   }
   return median;
 }
+
+bool Image::threshold(float val)
+{
+  median(3);
+  median(3);
+  median(3);
+  sharpen(3);
+  convert_gs();
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->r = (data[j]->r <= val ? 0 : 255);
+      data[j]->g = (data[j]->g <= val ? 0 : 255);
+      data[j]->b = (data[j]->b <= val ? 0 : 255);
+    }
+}
+

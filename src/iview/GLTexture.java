@@ -72,6 +72,13 @@ public class GLTexture
 		TextureImage2D();
 	}
 	
+	public void GaussianSmooth(int r, float s)
+	{
+		image.gaussianSmooth(r, s);
+		Bind();
+		TextureImage2D();
+	}
+	
 	public Boolean Rotate()
 	{
 		Boolean ok = image.Rotate90();
@@ -99,6 +106,14 @@ public class GLTexture
 	public Boolean Grayscale()
 	{
 		Boolean ok = image.grayScale();
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
+	public Boolean Threshold(float val)
+	{
+		Boolean ok = image.threshold(val);
 		Bind();
 		TextureImage2D();
 		return ok;

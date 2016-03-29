@@ -72,6 +72,7 @@ class Image
   bool convolve(float* kernel, int kdim, float scale=1, float bias=0, float min=0, float max=255);
   bool convolve(Pixel<float> ** &result, float* kernel, int kdim, float scale=1, float bias=0, float min=0, float max=255);
   Pixel<float> select_median(Pixel<float> ** pixel_list, int sz);
+  bool threshold(float val);
 
   // size/geometry manipulations
   bool crop();
@@ -92,7 +93,8 @@ class Image
   void sobel();
   void emboss(int ksize);
   void median(int r);
-  
+  void gauss(int ksize, float sigma);
+
   // ffts
 };
 

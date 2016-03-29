@@ -185,6 +185,19 @@ public class Iview
 			}
 		});
 		
+		// threshold correction
+		MenuItem threshold = new MenuItem(popupMenu, SWT.NONE);
+		threshold.setText("&Threshold");
+		threshold.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Threshold(145f);
+				imgPane.refresh();							
+			}
+		});
+		
 		// sharpen filter
 		MenuItem sharpen_filter = new MenuItem(popupMenu, SWT.NONE);
 		sharpen_filter.setText("&Sharpen");
@@ -233,6 +246,19 @@ public class Iview
 			{
 				if (!imgPane.hasImage) return;
 				imgPane.texture.Median(3);
+				imgPane.refresh();
+			}
+		});
+		
+		// gaussian smoothing filter
+		MenuItem gaussian_smooth = new MenuItem(popupMenu, SWT.NONE);
+		gaussian_smooth.setText("&Gaussian Blur");
+		gaussian_smooth.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.GaussianSmooth(7, 1f);
 				imgPane.refresh();
 			}
 		});

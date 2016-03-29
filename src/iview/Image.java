@@ -173,6 +173,13 @@ public class Image
 		height = Libimage.instance.height(image_handle);			
 		updatePixelData(); 
 	}
+	
+	public void gaussianSmooth(int ksize, float s)
+	{
+		Libimage.instance.gaussian_smooth(ksize, s, image_handle);
+		updatePixelData();
+	}
+	
 	public void median(int r)
 	{
 		Libimage.instance.median(r, image_handle);
@@ -191,6 +198,13 @@ public class Image
 	public Boolean grayScale()
 	{
 		Boolean ok = Libimage.instance.gray_scale(image_handle);
+		updatePixelData();
+		return ok;
+	}
+	
+	public Boolean threshold(float val)
+	{
+		Boolean ok = Libimage.instance.threshold(val, image_handle);
 		updatePixelData();
 		return ok;
 	}

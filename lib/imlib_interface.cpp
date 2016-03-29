@@ -63,6 +63,11 @@ extern "C"
     handle->emboss(ksize);
   }
 
+  void gaussian_smooth(int ksize, float sigma, Image* handle)
+  {
+    handle->gauss(ksize, sigma);
+  }
+
   void median(int r, Image * handle)
   {
     handle->median(r);
@@ -81,5 +86,10 @@ extern "C"
   bool gray_scale(Image * handle)
   {
     return handle->convert_gs();
+  }
+  
+  bool threshold(float val, Image* handle)
+  {
+    return handle->threshold(val);
   }
 }

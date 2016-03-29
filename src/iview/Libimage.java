@@ -19,8 +19,10 @@ public interface Libimage extends Library
 	public void sharpen(int size, Pointer handle);
 	public void sobel(Pointer handle);
 	public void emboss(int ksize, Pointer handle);
+	public void gaussian_smooth(int ksize, float sigma, Pointer handle);
 	public void median(int r, Pointer handle);
 	public Boolean texture_data(byte[] data, int size, Pointer handle);
 	public Boolean gamma_correct(float gr, float gg, float gb, float max, float scale, float bias, Pointer handle);
 	public Boolean gray_scale(Pointer handle);
+	public Boolean threshold(float val, Pointer handle);
 }
