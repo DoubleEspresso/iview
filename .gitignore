@@ -53,5 +53,8 @@ _ReSharper*/
 #Subversion files
 .svn
 
+#eclipse class files
+*.class
+
 # Office Temp Files
 ~$*

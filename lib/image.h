@@ -1,6 +1,8 @@
 #ifndef LIB_IMAGE_H
 #define LIB_IMAGE_H
 
+#include <fftw3.h>
+
 #include "image_jpeg.h"
 #include "filter.h"
 
@@ -96,6 +98,7 @@ class Image
   void gauss(int ksize, float sigma);
 
   // ffts
+  bool forward_fft();
 };
 
 #endif

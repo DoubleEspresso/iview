@@ -2,8 +2,8 @@
 
 CXX = g++
 RM = rm -f  # rm command
-LFLAGS = -L../../external/jpeg/lib64 -ljpeg
-INCS +=-I../../external/jpeg/src
+LFLAGS = -L../../external/jpeg/lib64 -ljpeg -L../../external/math/bin64 -lfftw3
+INCS +=-I../../external/jpeg/src -I../../external/math/fftw/api
 CFLAGS = -Wall -fPIC -O3 -g -m64 $(INCS)
 
 SRCS = image.cpp image_jpeg.cpp stringutils.cpp jpeg_interface.cpp imlib_interface.cpp

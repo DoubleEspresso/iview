@@ -559,5 +559,104 @@ bool Image::threshold(float val)
       data[j]->g = (data[j]->g <= val ? 0 : 255);
       data[j]->b = (data[j]->b <= val ? 0 : 255);
     }
+  return true;
 }
+
+bool Image::forward_fft()
+{
+  fftw_plan plan_r, plan_g, plan_b;
+  fftw_complex *coeffs_r, *coeffs_g, *coeffs_b;
+
+  int nb = _size;// / 2 + 1;
+
+  double * red = new double[_size];
+  double * green = new double[_size];
+  double * blue = new double[_size];
+  
+for (int j=0; j<_size; ++j)
+    {
+      red[j] = data[j]->r; blue[j] = data[j]->b; green[j] = data[j]->g;
+    }
+
+  coeffs_r = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  coeffs_g = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  coeffs_b = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+
+  plan_r = fftw_plan_dft_r2c_2d(_width, _height, red, coeffs_r, FFTW_ESTIMATE);
+  plan_g = fftw_plan_dft_r2c_2d(_width, _height, green, coeffs_g, FFTW_ESTIMATE);
+  plan_b = fftw_plan_dft_r2c_2d(_width, _height, blue, coeffs_b, FFTW_ESTIMATE);
+
+  fftw_execute(plan_r);
+  fftw_execute(plan_g);
+  fftw_execute(plan_b);
+
+  /* example high pass filter */
+  for (int y = 0, idx = 0; y < _height; ++y)
+    {
+      for (int x = 0; x < _width; ++x, ++idx)
+	{
+	  // shift coords between -1 and 1
+	  //double xn = (x - _width ) / _width;
+	  //double yn = (y - _height) / _height;
+	  //double maxr = sqrt(2);
+	  //double r = sqrt(xn*xn + yn*yn) / maxr; //[0,1]
+	  //double f = (r <= .81 ? 0 : 1);
+	  //coeffs_r[idx][0] *= f; coeffs_g[idx][0] *= f; coeffs_b[idx][0] *= f;
+	  //coeffs_r[idx][1] *= f; coeffs_g[idx][1] *= f; coeffs_b[idx][1] *= f;
+
+	  double rm = coeffs_r[idx][0]*coeffs_r[idx][0] + coeffs_r[idx][1]*coeffs_r[idx][1];
+	  double gm = coeffs_g[idx][0]*coeffs_g[idx][0] + coeffs_g[idx][1]*coeffs_g[idx][1];
+	  double bm = coeffs_b[idx][0]*coeffs_b[idx][0] + coeffs_b[idx][1]*coeffs_b[idx][1];
+
+	  //printf("%f\n",rm/(double(_size)));
+
+	  //if (rm/(double(_size)) > 100) { coeffs_r[idx][0] = 0; coeffs_r[idx][1] = 0; }
+	  //if (gm/(double(_size)) < 100) { coeffs_g[idx][0] = 0; coeffs_g[idx][1] = 0; }
+	  if (bm/(double(_size)) > 100) { coeffs_b[idx][0] = 0; coeffs_b[idx][1] = 0; }
+	  
+	}
+    }
+  
+  fftw_plan back_r, back_g, back_b;
+  double * out_r = new double[_size];
+  double * out_g = new double[_size];
+  double * out_b = new double[_size];
+  back_r = fftw_plan_dft_c2r_2d(_width, _height, coeffs_r, out_r, FFTW_ESTIMATE);
+  back_g = fftw_plan_dft_c2r_2d(_width, _height, coeffs_g, out_g, FFTW_ESTIMATE);
+  back_b = fftw_plan_dft_c2r_2d(_width, _height, coeffs_b, out_b, FFTW_ESTIMATE);
+
+  fftw_execute(back_r);
+  fftw_execute(back_g);
+  fftw_execute(back_b);
+
+  // normalization
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->r = out_r[j] / double(_size);
+      data[j]->g = out_g[j] / double(_size);
+      data[j]->b = out_b[j] / double(_size);
+    }
+
+  fftw_destroy_plan(plan_r); 
+  fftw_destroy_plan(plan_g);
+  fftw_destroy_plan(plan_b);  
+
+  fftw_destroy_plan(back_r); 
+  fftw_destroy_plan(back_g);
+  fftw_destroy_plan(back_b);  
+  fftw_cleanup();
+
+  //fftw_free(coeffs_r); 
+  //fftw_free(coeffs_g); 
+  //fftw_free(coeffs_b); 
+  if (red) { delete [] red; red = 0; }
+  if (green) { delete [] green; green = 0; }
+  if (out_r) { delete [] out_r; out_r = 0; }
+  if (out_g) { delete [] out_g; out_g = 0; }
+  //if (blue) { delete [] blue; blue = 0; } // this one crashes!?!?
+  printf("..done with fft\n");
+  return true;
+}
+
+
 

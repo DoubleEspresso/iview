@@ -17,14 +17,13 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-      
+      im->forward_fft();
       //im->sharpen(3);
       //im->sobel();
-      im->median(3);
-      im->median(3);
-      im->median(3);
-      im->sharpen(3);
-      //im->rotate90();
+      //im->median(3);
+      //im->median(3);
+      //im->median(3);
+      //im->sharpen(3);
       //jptr->flipv();
       //jptr->rotate90();
       
