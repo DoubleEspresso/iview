@@ -573,40 +573,36 @@ bool Image::convolve_fft()
   // note: size of output for fourier coefficients in d-dimensions is
   // n1*n2*...*(nd/2+1).  Stored in row-major format.
   int nb = (_width/2+1) * (_height); 
+  int zpad = _size + _size - 1;
   double scale = 1.0/double(_size); // normalization factor
   
-  double * in_r = new double[_size]; 
-  double * in_g = new double[_size]; 
-  double * in_b = new double[_size]; 
+  double * in_r = new double[zpad]; std::memset(in_r, 0, zpad * sizeof(double)); 
+  double * in_g = new double[zpad]; std::memset(in_g, 0, zpad * sizeof(double)); 
+  double * in_b = new double[zpad]; std::memset(in_b, 0, zpad * sizeof(double)); 
 
-  double * out_r = new double[_size];
-  double * out_g = new double[_size];
-  double * out_b = new double[_size];
+  double * out_r = new double[zpad]; std::memset(out_r, 0, zpad * sizeof(double)); 
+  double * out_g = new double[zpad]; std::memset(out_g, 0, zpad * sizeof(double)); 
+  double * out_b = new double[zpad]; std::memset(out_b, 0, zpad * sizeof(double)); 
 
-  double * f = new double[_size]; // the filtered image
+  //double * f = new double[_size]; // the filtered image
+  double * f = new double[zpad]; // the filtered image
   
   // allocate coefficients for forward fourier transformation
-  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  C = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  C = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
 
   // allocate coefficients for backward fourier transformation
-  IR = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  IG = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  IB = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  IR = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  IG = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  IB = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
 
   // copy input data
   for (int j=0; j<_size; ++j) 
     {
       in_r[j] = data[j]->r; in_b[j] = data[j]->b; in_g[j] = data[j]->g;
     }
-  /*
-  rplan = fftw_plan_dft_r2c_2d(_width, _height, in_r, R, FFTW_ESTIMATE);
-  gplan = fftw_plan_dft_r2c_2d(_width, _height, in_g, G, FFTW_ESTIMATE);
-  bplan = fftw_plan_dft_r2c_2d(_width, _height, in_b, B, FFTW_ESTIMATE);
-  */
-
   rplan = fftw_plan_dft_r2c_2d(_height, _width, in_r, R, FFTW_ESTIMATE);
   gplan = fftw_plan_dft_r2c_2d(_height, _width, in_g, G, FFTW_ESTIMATE);
   bplan = fftw_plan_dft_r2c_2d(_height, _width, in_b, B, FFTW_ESTIMATE);
@@ -616,23 +612,27 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = 2;
+  double s = 4;
   double range = 10;
   double norm = 0;
-  double freq = 2.0/_width; 
+  double freq = 1.25;//2.0/_width; 
   double exps = 1/(2*s*s);
+  double nrm = 1.0 / (sqrt(2*M_PI)*s);
   for (int y=0, idx=0; y<_height; ++y)
     {
       for (int x=0; x<_width; ++x, ++idx)
 	{	  
-	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
-	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
+	  double xn = x;//2.0*range * double( x - _width/2.0 ) / double(_width);
+	  double yn = y;//2.0*range * double( y - _height/2.0 ) / double(_height);
 	  //f[idx] = sin( 2.0 * M_PI * freq * x);
 	  double r2 = xn * xn + yn * yn;
-	  f[idx] =  exp(-r2 *exps );
+	  //if (r2 == 0) f[idx] = 1.0;
+	  //else f[idx] = sin(freq * M_PI * sqrt(r2)) / (freq * M_PI * sqrt(r2));
+	  f[idx] = exp(-r2 *exps );
 	  norm += f[idx];
 	}
     }
+  for (int j=0; j<_size; ++j) f[j] *= 1/norm;
   fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
   fftw_execute(fplan);
   
@@ -640,14 +640,13 @@ bool Image::convolve_fft()
   Image * ifilter = new Image(_width, _height);
   for (int j=0; j<_size; ++j)
     {      
-      //if  (f[j]>0) printf("%f\n", f[j]);
       ifilter->set(j,(float)255*f[j]);
     }
   ifilter->convert_gs();
   ifilter->save("/home/mjg/Desktop/dbg-gauss-filter.jpg",100);
   delete ifilter; ifilter = 0;
-  
-  for (int j=0; j<nb; ++j)     
+
+  for (int j=0; j<zpad; ++j)     
     {
       float rre = R[j][0] * C[j][0] - R[j][1] * C[j][1];
       float rim = R[j][1] * C[j][0] + R[j][0] * C[j][1];
@@ -663,43 +662,23 @@ bool Image::convolve_fft()
     }
 
   Image * ffilter = new Image(_width/2+1, _height);
-  //fftshift(C, _height, _width/2+1);
-  //fftshift(C, _width/2+1, _height);
   std::ofstream datfile;
   datfile.open("spectrum.txt");
   for (int y=0, j=0, i = nb-1 ; y<_height; ++y)
     {
       for (int x=0; x<_width/2+1; ++x, ++j, --i)
 	{
-	  float val = (float) (C[j][0]*C[j][0] + C[j][1] * C[j][1]); //+
-	  //				   C[i][0]*C[i][0] + C[i][1] * C[i][1]);//*scale*scale;
+	  float val = (float) C[j][0]*C[j][0] + C[j][1] * C[j][1];
 	  char line[256];
 	  sprintf(line, "%d %d %f\n", x, y, val);
 	  if (val > 0.1) datfile << line; 
 	  ffilter->set(j, val);
 	}
     }
-    /*
-  for (int j=0; j<nb; ++j)
-    {
-      //f[j] *= 1.0/norm;
-      float val = (float)(C[j][0]*C[j][0] + C[j][1] * C[j][1])*scale*scale;
-      ffilter->set(j,val);
-      // nb-1 corresponds to 0.5 * 1/freq (half the sampling rate)
-      // so j corresponds to j/nb * 0.5 * 1/freq (Hz)
-      if (val > 0.1) printf("%d %f %f \n",nb, 0.5 * j/(nb * freq), val); 
-    }
-    */
   datfile.close();
   ffilter->convert_gs();
   ffilter->save("/home/mjg/Desktop/dbg-gauss-fft-filter.jpg",100);
   delete ffilter; ffilter = 0;
-
-  /*
-  irplan = fftw_plan_dft_c2r_2d(_width, _height, R, out_r, FFTW_ESTIMATE);
-  igplan = fftw_plan_dft_c2r_2d(_width, _height, G, out_g, FFTW_ESTIMATE);
-  ibplan = fftw_plan_dft_c2r_2d(_width, _height, B, out_b, FFTW_ESTIMATE);
-  */
 
   irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
@@ -712,9 +691,9 @@ bool Image::convolve_fft()
   // normalization
   for (int j=0; j<_size; ++j)
     {
-      data[j]->r = out_r[j] * scale;
-      data[j]->g = out_g[j] * scale;
-      data[j]->b = out_b[j] * scale;
+      data[j]->r = out_r[j] * 1/_size;
+      data[j]->g = out_g[j] * 1/_size;
+      data[j]->b = out_b[j] * 1/_size;
     }
 
   fftw_destroy_plan(rplan);
@@ -726,15 +705,14 @@ bool Image::convolve_fft()
   fftw_destroy_plan(igplan);
   fftw_cleanup();
 
-  //fftw_free(coeffs_r); 
-  //fftw_free(coeffs_g); 
-  //fftw_free(coeffs_b); 
   if (in_r) { delete [] in_r; in_r = 0; }
   if (in_g) { delete [] in_g; in_g = 0; }
+  if (in_b) { delete [] in_b; in_b = 0; }
   if (out_r) { delete [] out_r; out_r = 0; }
   if (out_g) { delete [] out_g; out_g = 0; }
+  if (out_b) { delete [] out_b; out_b = 0; } 
   if (f) { delete [] f; f = 0; }
-  //if (blue) { delete [] blue; blue = 0; } // this one crashes!?!?
+
   printf("..done with fft\n");
   return true;
 }
