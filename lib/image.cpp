@@ -572,7 +572,7 @@ bool Image::convolve_fft()
   
   // note: size of output for fourier coefficients in d-dimensions is
   // n1*n2*...*(nd/2+1).  Stored in row-major format.
-  int nb = _width * (_height/2 + 1); 
+  int nb = (_width/2+1) * (_height); 
   double scale = 1.0/double(_size); // normalization factor
   
   double * in_r = new double[_size]; 
@@ -616,7 +616,7 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = 1;
+  double s = 2;
   double range = 10;
   double norm = 0;
   double freq = 2.0/_width; 
@@ -624,8 +624,7 @@ bool Image::convolve_fft()
   for (int y=0, idx=0; y<_height; ++y)
     {
       for (int x=0; x<_width; ++x, ++idx)
-	{
-	  
+	{	  
 	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
 	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
 	  //f[idx] = sin( 2.0 * M_PI * freq * x);
@@ -634,7 +633,7 @@ bool Image::convolve_fft()
 	  norm += f[idx];
 	}
     }
-  fplan = fftw_plan_dft_r2c_2d(_width, _height, f, C, FFTW_ESTIMATE);
+  fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
   fftw_execute(fplan);
   
   /* debug save image filter */
@@ -663,14 +662,14 @@ bool Image::convolve_fft()
       B[j][0] = bre; B[j][1] = bim;
     }
 
-  Image * ffilter = new Image(_width, (_height/2+1));
-  //fftshift(C, _height/2+1, _width);
-  //fftshift(C, _width, _height/2+1);
+  Image * ffilter = new Image(_width/2+1, _height);
+  //fftshift(C, _height, _width/2+1);
+  //fftshift(C, _width/2+1, _height);
   std::ofstream datfile;
   datfile.open("spectrum.txt");
-  for (int y=0, j=0, i = nb-1 ; y<(_height/2+1); ++y)
+  for (int y=0, j=0, i = nb-1 ; y<_height; ++y)
     {
-      for (int x=0; x<_width; ++x, ++j, --i)
+      for (int x=0; x<_width/2+1; ++x, ++j, --i)
 	{
 	  float val = (float) (C[j][0]*C[j][0] + C[j][1] * C[j][1]); //+
 	  //				   C[i][0]*C[i][0] + C[i][1] * C[i][1]);//*scale*scale;
@@ -696,16 +695,16 @@ bool Image::convolve_fft()
   ffilter->save("/home/mjg/Desktop/dbg-gauss-fft-filter.jpg",100);
   delete ffilter; ffilter = 0;
 
-  
+  /*
   irplan = fftw_plan_dft_c2r_2d(_width, _height, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_width, _height, G, out_g, FFTW_ESTIMATE);
   ibplan = fftw_plan_dft_c2r_2d(_width, _height, B, out_b, FFTW_ESTIMATE);
+  */
 
-  /*
   irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
   ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
-  */
+
   fftw_execute(irplan);
   fftw_execute(igplan);
   fftw_execute(ibplan);
