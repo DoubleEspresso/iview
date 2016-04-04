@@ -2,6 +2,9 @@
 #include <ctype.h>
 #include <algorithm>
 #include <math.h>
+#include <iostream>
+#include <fstream>
+#include <fftw3.h>
 
 #include "image.h"
 #include "stringutils.h"
@@ -16,7 +19,7 @@ Image::Image() :
 
 Image::Image(uint w, uint h) : 
   _height(h), _width(w), _comps(3), 
-  _size(0), data(0), jpeg_handle(0), filter(0)
+  _size(w*h), data(0), jpeg_handle(0), filter(0)
 {
   gammas.r = 1; gammas.b = 1; gammas.g = 1;
   init(w,h,3);
@@ -562,97 +565,176 @@ bool Image::threshold(float val)
   return true;
 }
 
-bool Image::forward_fft()
+bool Image::convolve_fft()
 {
-  fftw_plan plan_r, plan_g, plan_b;
-  fftw_complex *coeffs_r, *coeffs_g, *coeffs_b;
-
-  int nb = _size;// / 2 + 1;
-
-  double * red = new double[_size];
-  double * green = new double[_size];
-  double * blue = new double[_size];
+  fftw_plan rplan, gplan, bplan, irplan, igplan, ibplan, fplan; 
+  fftw_complex *R, *G, *B, *C, *IR, *IG, *IB; // storage for the fourier coefficients
   
-for (int j=0; j<_size; ++j)
-    {
-      red[j] = data[j]->r; blue[j] = data[j]->b; green[j] = data[j]->g;
-    }
-
-  coeffs_r = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  coeffs_g = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-  coeffs_b = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
-
-  plan_r = fftw_plan_dft_r2c_2d(_width, _height, red, coeffs_r, FFTW_ESTIMATE);
-  plan_g = fftw_plan_dft_r2c_2d(_width, _height, green, coeffs_g, FFTW_ESTIMATE);
-  plan_b = fftw_plan_dft_r2c_2d(_width, _height, blue, coeffs_b, FFTW_ESTIMATE);
-
-  fftw_execute(plan_r);
-  fftw_execute(plan_g);
-  fftw_execute(plan_b);
-
-  /* example high pass filter */
-  for (int y = 0, idx = 0; y < _height; ++y)
-    {
-      for (int x = 0; x < _width; ++x, ++idx)
-	{
-	  // shift coords between -1 and 1
-	  //double xn = (x - _width ) / _width;
-	  //double yn = (y - _height) / _height;
-	  //double maxr = sqrt(2);
-	  //double r = sqrt(xn*xn + yn*yn) / maxr; //[0,1]
-	  //double f = (r <= .81 ? 0 : 1);
-	  //coeffs_r[idx][0] *= f; coeffs_g[idx][0] *= f; coeffs_b[idx][0] *= f;
-	  //coeffs_r[idx][1] *= f; coeffs_g[idx][1] *= f; coeffs_b[idx][1] *= f;
-
-	  double rm = coeffs_r[idx][0]*coeffs_r[idx][0] + coeffs_r[idx][1]*coeffs_r[idx][1];
-	  double gm = coeffs_g[idx][0]*coeffs_g[idx][0] + coeffs_g[idx][1]*coeffs_g[idx][1];
-	  double bm = coeffs_b[idx][0]*coeffs_b[idx][0] + coeffs_b[idx][1]*coeffs_b[idx][1];
-
-	  //printf("%f\n",rm/(double(_size)));
-
-	  //if (rm/(double(_size)) > 100) { coeffs_r[idx][0] = 0; coeffs_r[idx][1] = 0; }
-	  //if (gm/(double(_size)) < 100) { coeffs_g[idx][0] = 0; coeffs_g[idx][1] = 0; }
-	  if (bm/(double(_size)) > 100) { coeffs_b[idx][0] = 0; coeffs_b[idx][1] = 0; }
-	  
-	}
-    }
+  // note: size of output for fourier coefficients in d-dimensions is
+  // n1*n2*...*(nd/2+1).  Stored in row-major format.
+  int nb = _width * (_height/2 + 1); 
+  double scale = 1.0/double(_size); // normalization factor
   
-  fftw_plan back_r, back_g, back_b;
+  double * in_r = new double[_size]; 
+  double * in_g = new double[_size]; 
+  double * in_b = new double[_size]; 
+
   double * out_r = new double[_size];
   double * out_g = new double[_size];
   double * out_b = new double[_size];
-  back_r = fftw_plan_dft_c2r_2d(_width, _height, coeffs_r, out_r, FFTW_ESTIMATE);
-  back_g = fftw_plan_dft_c2r_2d(_width, _height, coeffs_g, out_g, FFTW_ESTIMATE);
-  back_b = fftw_plan_dft_c2r_2d(_width, _height, coeffs_b, out_b, FFTW_ESTIMATE);
 
-  fftw_execute(back_r);
-  fftw_execute(back_g);
-  fftw_execute(back_b);
+  double * f = new double[_size]; // the filtered image
+  
+  // allocate coefficients for forward fourier transformation
+  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  C = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
 
+  // allocate coefficients for backward fourier transformation
+  IR = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  IG = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  IB = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+
+  // copy input data
+  for (int j=0; j<_size; ++j) 
+    {
+      in_r[j] = data[j]->r; in_b[j] = data[j]->b; in_g[j] = data[j]->g;
+    }
+  /*
+  rplan = fftw_plan_dft_r2c_2d(_width, _height, in_r, R, FFTW_ESTIMATE);
+  gplan = fftw_plan_dft_r2c_2d(_width, _height, in_g, G, FFTW_ESTIMATE);
+  bplan = fftw_plan_dft_r2c_2d(_width, _height, in_b, B, FFTW_ESTIMATE);
+  */
+
+  rplan = fftw_plan_dft_r2c_2d(_height, _width, in_r, R, FFTW_ESTIMATE);
+  gplan = fftw_plan_dft_r2c_2d(_height, _width, in_g, G, FFTW_ESTIMATE);
+  bplan = fftw_plan_dft_r2c_2d(_height, _width, in_b, B, FFTW_ESTIMATE);
+
+  fftw_execute(rplan);
+  fftw_execute(gplan);
+  fftw_execute(bplan);
+  
+  /* filtering dbg */
+  double s = 1;
+  double range = 10;
+  double norm = 0;
+  double freq = 2.0/_width; 
+  double exps = 1/(2*s*s);
+  for (int y=0, idx=0; y<_height; ++y)
+    {
+      for (int x=0; x<_width; ++x, ++idx)
+	{
+	  
+	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
+	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
+	  //f[idx] = sin( 2.0 * M_PI * freq * x);
+	  double r2 = xn * xn + yn * yn;
+	  f[idx] =  exp(-r2 *exps );
+	  norm += f[idx];
+	}
+    }
+  fplan = fftw_plan_dft_r2c_2d(_width, _height, f, C, FFTW_ESTIMATE);
+  fftw_execute(fplan);
+  
+  /* debug save image filter */
+  Image * ifilter = new Image(_width, _height);
+  for (int j=0; j<_size; ++j)
+    {      
+      //if  (f[j]>0) printf("%f\n", f[j]);
+      ifilter->set(j,(float)255*f[j]);
+    }
+  ifilter->convert_gs();
+  ifilter->save("/home/mjg/Desktop/dbg-gauss-filter.jpg",100);
+  delete ifilter; ifilter = 0;
+  
+  for (int j=0; j<nb; ++j)     
+    {
+      float rre = R[j][0] * C[j][0] - R[j][1] * C[j][1];
+      float rim = R[j][1] * C[j][0] + R[j][0] * C[j][1];
+      R[j][0] = rre; R[j][1] = rim;
+      
+      float gre = G[j][0] * C[j][0] - G[j][1] * C[j][1];
+      float gim = G[j][1] * C[j][0] + G[j][0] * C[j][1];
+      G[j][0] = gre; G[j][1] = gim;
+      
+      float bre = B[j][0] * C[j][0] - B[j][1] * C[j][1];
+      float bim = B[j][1] * C[j][0] + B[j][0] * C[j][1];
+      B[j][0] = bre; B[j][1] = bim;
+    }
+
+  Image * ffilter = new Image(_width, (_height/2+1));
+  //fftshift(C, _height/2+1, _width);
+  //fftshift(C, _width, _height/2+1);
+  std::ofstream datfile;
+  datfile.open("spectrum.txt");
+  for (int y=0, j=0, i = nb-1 ; y<(_height/2+1); ++y)
+    {
+      for (int x=0; x<_width; ++x, ++j, --i)
+	{
+	  float val = (float) (C[j][0]*C[j][0] + C[j][1] * C[j][1]); //+
+	  //				   C[i][0]*C[i][0] + C[i][1] * C[i][1]);//*scale*scale;
+	  char line[256];
+	  sprintf(line, "%d %d %f\n", x, y, val);
+	  if (val > 0.1) datfile << line; 
+	  ffilter->set(j, val);
+	}
+    }
+    /*
+  for (int j=0; j<nb; ++j)
+    {
+      //f[j] *= 1.0/norm;
+      float val = (float)(C[j][0]*C[j][0] + C[j][1] * C[j][1])*scale*scale;
+      ffilter->set(j,val);
+      // nb-1 corresponds to 0.5 * 1/freq (half the sampling rate)
+      // so j corresponds to j/nb * 0.5 * 1/freq (Hz)
+      if (val > 0.1) printf("%d %f %f \n",nb, 0.5 * j/(nb * freq), val); 
+    }
+    */
+  datfile.close();
+  ffilter->convert_gs();
+  ffilter->save("/home/mjg/Desktop/dbg-gauss-fft-filter.jpg",100);
+  delete ffilter; ffilter = 0;
+
+  
+  irplan = fftw_plan_dft_c2r_2d(_width, _height, R, out_r, FFTW_ESTIMATE);
+  igplan = fftw_plan_dft_c2r_2d(_width, _height, G, out_g, FFTW_ESTIMATE);
+  ibplan = fftw_plan_dft_c2r_2d(_width, _height, B, out_b, FFTW_ESTIMATE);
+
+  /*
+  irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
+  igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
+  ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
+  */
+  fftw_execute(irplan);
+  fftw_execute(igplan);
+  fftw_execute(ibplan);
+  
   // normalization
   for (int j=0; j<_size; ++j)
     {
-      data[j]->r = out_r[j] / double(_size);
-      data[j]->g = out_g[j] / double(_size);
-      data[j]->b = out_b[j] / double(_size);
+      data[j]->r = out_r[j] * scale;
+      data[j]->g = out_g[j] * scale;
+      data[j]->b = out_b[j] * scale;
     }
 
-  fftw_destroy_plan(plan_r); 
-  fftw_destroy_plan(plan_g);
-  fftw_destroy_plan(plan_b);  
-
-  fftw_destroy_plan(back_r); 
-  fftw_destroy_plan(back_g);
-  fftw_destroy_plan(back_b);  
+  fftw_destroy_plan(rplan);
+  fftw_destroy_plan(gplan);
+  fftw_destroy_plan(bplan);
+  fftw_destroy_plan(fplan);
+  fftw_destroy_plan(irplan);
+  fftw_destroy_plan(ibplan);
+  fftw_destroy_plan(igplan);
   fftw_cleanup();
 
   //fftw_free(coeffs_r); 
   //fftw_free(coeffs_g); 
   //fftw_free(coeffs_b); 
-  if (red) { delete [] red; red = 0; }
-  if (green) { delete [] green; green = 0; }
+  if (in_r) { delete [] in_r; in_r = 0; }
+  if (in_g) { delete [] in_g; in_g = 0; }
   if (out_r) { delete [] out_r; out_r = 0; }
   if (out_g) { delete [] out_g; out_g = 0; }
+  if (f) { delete [] f; f = 0; }
   //if (blue) { delete [] blue; blue = 0; } // this one crashes!?!?
   printf("..done with fft\n");
   return true;

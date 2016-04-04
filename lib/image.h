@@ -1,17 +1,36 @@
 #ifndef LIB_IMAGE_H
 #define LIB_IMAGE_H
 
-#include <fftw3.h>
-
 #include "image_jpeg.h"
 #include "filter.h"
 
-
+#define fftshift(in, x, y) circshift(in, x, y, floor(x/2), floor(y/2))
+#define fftishift(in, x, y) circshift(in, x, y, ceil(x/2), ceil(y/2))
 typedef unsigned long long u64;
 typedef unsigned int uint;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
+
+template<class ty>
+void circshift(ty *in, int xdim, int ydim, int xshift, int yshift)
+{
+  ty * out = new ty[xdim * ydim];
+  for(int i=0; i<xdim; ++i)
+  {
+    int ii=(i+xshift) % xdim;
+    if (ii < 0 ) ii = xdim + ii;
+    for (int j=0; j <ydim; ++j)
+    {
+      int jj = (j+yshift)%ydim;
+      if (jj < 0) jj = ydim + jj;
+      out[ii * ydim + jj][0] = in[i * ydim + j][0];
+      out[ii * ydim + jj][1] = in[i * ydim + j][1];
+    }
+  }
+  memcpy(in, out, sizeof(ty) * xdim * ydim);
+  delete [] out; out = 0;
+}
 
 template<typename T>
 struct Pixel
@@ -49,7 +68,8 @@ class Image
   bool save(char * filename, uint quality);
   bool parse_type(char * ext);
   bool set(unsigned char * data);
-
+  bool set(double * data);
+  
   // size info
   bool init(int w, int h, int c);
   bool clear();
@@ -63,6 +83,7 @@ class Image
   Image_JPEG * get_handle() {return jpeg_handle;}
   Pixel<float>* pixel(int idx) { return data[idx]; }
   void set(int idx, Pixel<float>& p) { data[idx]->set(p.r, p.g, p.b); }
+  void set(int idx, float v) { data[idx]->set(v,v,v); }
   void set_red(int idx, float v) { data[idx]->r = v; }
   void set_green(int idx, float v) { data[idx]->g = v; }
   void set_blue(int idx, float v) { data[idx]->b = v; }
@@ -98,7 +119,7 @@ class Image
   void gauss(int ksize, float sigma);
 
   // ffts
-  bool forward_fft();
+  bool convolve_fft();
 };
 
 #endif

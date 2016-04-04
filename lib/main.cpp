@@ -17,7 +17,7 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-      im->forward_fft();
+      im->convolve_fft();
       //im->sharpen(3);
       //im->sobel();
       //im->median(3);
