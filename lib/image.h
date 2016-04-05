@@ -4,13 +4,13 @@
 #include "image_jpeg.h"
 #include "filter.h"
 
-#define fftshift(in, x, y) circshift(in, x, y, floor(x/2), floor(y/2))
+#define fftshift(in, x, y) fftswap(in, x, y)//circshift(in, x, y, floor(x/2), floor(y/2))
 #define fftishift(in, x, y) circshift(in, x, y, ceil(x/2), ceil(y/2))
+
 typedef unsigned long long u64;
 typedef unsigned int uint;
 typedef unsigned short u16;
 typedef unsigned char u8;
-
 
 template<class ty>
 void circshift(ty *in, int xdim, int ydim, int xshift, int yshift)
@@ -84,6 +84,7 @@ class Image
   Pixel<float>* pixel(int idx) { return data[idx]; }
   void set(int idx, Pixel<float>& p) { data[idx]->set(p.r, p.g, p.b); }
   void set(int idx, float v) { data[idx]->set(v,v,v); }
+  void set(int idx, float r, float g, float b) { data[idx]->set(r,g,b); }
   void set_red(int idx, float v) { data[idx]->r = v; }
   void set_green(int idx, float v) { data[idx]->g = v; }
   void set_blue(int idx, float v) { data[idx]->b = v; }
@@ -120,6 +121,8 @@ class Image
 
   // ffts
   bool convolve_fft();
+  bool fftswap(); // dbg
+  int pow2(int i); // zero padding
 };
 
 #endif

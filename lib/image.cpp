@@ -572,8 +572,10 @@ bool Image::convolve_fft()
   
   // note: size of output for fourier coefficients in d-dimensions is
   // n1*n2*...*(nd/2+1).  Stored in row-major format.
+  int maxd = (_width > _height ? _width : _height);
+  maxd = pow2(maxd);
   int nb = (_width/2+1) * (_height); 
-  int zpad = _size + _size - 1;
+  int zpad = maxd * maxd; //_size + _size - 1;
   double scale = 1.0/double(_size); // normalization factor
   
   double * in_r = new double[zpad]; std::memset(in_r, 0, zpad * sizeof(double)); 
@@ -584,7 +586,6 @@ bool Image::convolve_fft()
   double * out_g = new double[zpad]; std::memset(out_g, 0, zpad * sizeof(double)); 
   double * out_b = new double[zpad]; std::memset(out_b, 0, zpad * sizeof(double)); 
 
-  //double * f = new double[_size]; // the filtered image
   double * f = new double[zpad]; // the filtered image
   
   // allocate coefficients for forward fourier transformation
@@ -612,9 +613,9 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = 4;
+  double s = 1;
   double range = 10;
-  double norm = 0;
+  double norm = 1;
   double freq = 1.25;//2.0/_width; 
   double exps = 1/(2*s*s);
   double nrm = 1.0 / (sqrt(2*M_PI)*s);
@@ -637,6 +638,7 @@ bool Image::convolve_fft()
   fftw_execute(fplan);
   
   /* debug save image filter */
+  /*
   Image * ifilter = new Image(_width, _height);
   for (int j=0; j<_size; ++j)
     {      
@@ -645,6 +647,37 @@ bool Image::convolve_fft()
   ifilter->convert_gs();
   ifilter->save("/home/mjg/Desktop/dbg-gauss-filter.jpg",100);
   delete ifilter; ifilter = 0;
+  */
+
+  
+  /*debug save fft spectrum/phase data*/
+  Image * fft_image = new Image(maxd, maxd);
+  //float maxr = 0; float maxg = 0; float maxb = 0;
+
+  /*for (int j=0; j<zpad; ++j)
+  {
+    float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1]);
+    float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1]);
+    float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1]);
+    if (vr > maxr ) maxr = vr;
+    if (vg > maxg ) maxg = vg;
+    if (vb > maxb ) maxb = vb;
+  }
+  */
+  for (int j=0; j<zpad; ++j)
+  {
+    float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
+    float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
+    float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
+    clamp(vr, vg, vb);
+    //printf("%f,%f,%f\n", vr, vg, vb);
+    //vr = -log(vr); vg = -log(vg) ; vb = -log(vb);
+    fft_image->set(j, vr, vg, vb);
+  }
+  fft_image->fftswap();
+  //fft_image->convert_gs();
+  fft_image->save("/home/mjg/Desktop/dbg-fft-spectrum.jpg",100);
+  delete fft_image; fft_image = 0;
 
   for (int j=0; j<zpad; ++j)     
     {
@@ -661,6 +694,7 @@ bool Image::convolve_fft()
       B[j][0] = bre; B[j][1] = bim;
     }
 
+  /*
   Image * ffilter = new Image(_width/2+1, _height);
   std::ofstream datfile;
   datfile.open("spectrum.txt");
@@ -668,7 +702,7 @@ bool Image::convolve_fft()
     {
       for (int x=0; x<_width/2+1; ++x, ++j, --i)
 	{
-	  float val = (float) C[j][0]*C[j][0] + C[j][1] * C[j][1];
+	  float val = (float) (C[j][0]*C[j][0] + C[j][1] * C[j][1]);
 	  char line[256];
 	  sprintf(line, "%d %d %f\n", x, y, val);
 	  if (val > 0.1) datfile << line; 
@@ -679,6 +713,7 @@ bool Image::convolve_fft()
   ffilter->convert_gs();
   ffilter->save("/home/mjg/Desktop/dbg-gauss-fft-filter.jpg",100);
   delete ffilter; ffilter = 0;
+  */
 
   irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
@@ -717,5 +752,28 @@ bool Image::convolve_fft()
   return true;
 }
 
+bool Image::fftswap()
+{
+  if (_width != _height) return false;
+  int half = _size/2;
+  for(int y = 0, idu =0, idl = _size-1; y < _height/2; ++y)
+    {
+      for (int x = 0; x < _width; ++x, ++idu, --idl)
+	{
+	  Pixel<float> * t = data[idu]; data[idu] = data[idl]; data[idl] = t;
+	  if (idu == half-1) return true;
+	}      
+    }
+  return true;
+}
+
+int Image::pow2(int i)
+{
+  // returns the nearest (greatest) power of 2 given integer i
+  if ( i <= 0 || !(i & (i-1))) return i;
+  int pow = 1;
+  while (i > 0) {i >>= 1; pow <<= 1 ;}
+  return pow;
+}
 
 
