@@ -652,7 +652,7 @@ bool Image::convolve_fft()
 
   
   /*debug save fft spectrum/phase data*/
-  int w = _width;
+  int w = _width/2+1;
   int h = _height;
   Image * fft_image = new Image(w, h);
   //float maxr = 0; float maxg = 0; float maxb = 0;
@@ -667,12 +667,12 @@ bool Image::convolve_fft()
     if (vb > maxb ) maxb = vb;
   }
   */
-  for(int y=0, j=0, i1 = _width*_height-1; y < _height; ++y)
+  for(int y=0, j=0; y < _height; ++y)
     {
       //for (int x=0, j=y*_width, i1 = j + _width-1; x<_width/2; ++x, ++j, --i1)
-      for (int x=0; x<_width/2; ++x, ++j, --i1)
+      for (int x=0; x<_width/2+1; ++x, ++j)
 	{
-
+	  //int j2 = (_height - 1 - y) * _width  + _width - x - 1;
 	  float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
 	  float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
 	  float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
@@ -680,13 +680,28 @@ bool Image::convolve_fft()
 	  //printf("%f,%f,%f\n", vr, vg, vb);
 	  //vr = -log(vr); vg = -log(vg) ; vb = -log(vb);
 	  fft_image->set(j, vr, vg, vb);
-	  fft_image->set(i1, vr, vg, vb);
+	  //fft_image->set(j2, vr, vg, vb);
 	}
     }
-  //fft_image->fftswap();
+  fft_image->fftswap();
   //fft_image->convert_gs();
-  fft_image->save("/home/mjg/Desktop/dbg-fft-spectrum.jpg",100);
+
+  Image * fft2 = new Image(_width, _height);
+  for(int y=0; y<_height; ++y)
+    {
+      for (int x =0; x <_width/2; ++x)
+	{
+	  int j1 = y * _width + x;
+	  int j2 = y * _width + (_width-1)-x;
+	  int j3 = y * (_width/2+1) + (_width/2 - x);
+	  
+	  fft2->set(j1,*fft_image->pixel(j3));
+	  fft2->set(j2,*fft_image->pixel(j3));
+	}
+    }
+  fft2->save("/home/mjg/Desktop/dbg-fft-spectrum.jpg",100);
   delete fft_image; fft_image = 0;
+  delete fft2; fft2 = 0;
 
   for (int j=0; j<zpad; ++j)     
     {
@@ -774,6 +789,16 @@ bool Image::fftswap()
 	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i4]); data[i4]->set(t1); 
 	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i3]); data[i3]->set(t2);
 	}      
+    }
+  
+  for(int y = 0; y < _height; ++y)
+    {
+      for (int x = 0, x2  = _width/2; x < _width/2; ++x, ++x2)
+	{
+	  int i1 = y * _width + x;
+	  int i2 = y * _width + x2;
+	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i2]); data[i2]->set(t1); 
+	}
     }
   return true;
 }
