@@ -650,37 +650,21 @@ bool Image::convolve_fft()
   delete ifilter; ifilter = 0;
   */
 
-  
   /*debug save fft spectrum/phase data*/
   int w = _width/2+1;
   int h = _height;
   Image * fft_image = new Image(w, h);
-  //float maxr = 0; float maxg = 0; float maxb = 0;
 
-  /*for (int j=0; j<zpad; ++j)
-  {
-    float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1]);
-    float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1]);
-    float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1]);
-    if (vr > maxr ) maxr = vr;
-    if (vg > maxg ) maxg = vg;
-    if (vb > maxb ) maxb = vb;
-  }
-  */
   for(int y=0, j=0; y < _height; ++y)
     {
-      //for (int x=0, j=y*_width, i1 = j + _width-1; x<_width/2; ++x, ++j, --i1)
       for (int x=0; x<_width/2+1; ++x, ++j)
 	{
-	  //int j2 = (_height - 1 - y) * _width  + _width - x - 1;
-	  float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
-	  float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
-	  float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
-	  //clamp(vr, vg, vb);
-	  //printf("%f,%f,%f\n", vr, vg, vb);
-	  //vr = -log(vr); vg = -log(vg) ; vb = -log(vb);
+	  float vr = (float) sqrt(R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
+	  float vg = (float) sqrt(G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
+	  float vb = (float) sqrt(B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
+	  vr = 255*log(1+vr); vg = 255*log(1+vg) ; vb = 255*log(1+vb);
+	  clamp(vr, vg, vb);
 	  fft_image->set(j, vr, vg, vb);
-	  //fft_image->set(j2, vr, vg, vb);
 	}
     }
   fft_image->fftswap();
@@ -718,27 +702,6 @@ bool Image::convolve_fft()
       B[j][0] = bre; B[j][1] = bim;
     }
 
-  /*
-  Image * ffilter = new Image(_width/2+1, _height);
-  std::ofstream datfile;
-  datfile.open("spectrum.txt");
-  for (int y=0, j=0, i = nb-1 ; y<_height; ++y)
-    {
-      for (int x=0; x<_width/2+1; ++x, ++j, --i)
-	{
-	  float val = (float) (C[j][0]*C[j][0] + C[j][1] * C[j][1]);
-	  char line[256];
-	  sprintf(line, "%d %d %f\n", x, y, val);
-	  if (val > 0.1) datfile << line; 
-	  ffilter->set(j, val);
-	}
-    }
-  datfile.close();
-  ffilter->convert_gs();
-  ffilter->save("/home/mjg/Desktop/dbg-gauss-fft-filter.jpg",100);
-  delete ffilter; ffilter = 0;
-  */
-
   irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
   ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
@@ -772,7 +735,6 @@ bool Image::convolve_fft()
   if (out_b) { delete [] out_b; out_b = 0; } 
   if (f) { delete [] f; f = 0; }
 
-  printf("..done with fft\n");
   return true;
 }
 
@@ -784,21 +746,12 @@ bool Image::fftswap()
     {
       for (int x = 0, i1 = y*_width, i2 = y*_width + halfx, 
 	     i3 = (y+halfy)*_width, i4 = (y+halfy)*_width + halfx; x < halfx; ++x, ++i1, ++i2, ++i3, ++i4)
-	//i3 = (_height - y - 1 ) * _width + halfx, i4 = (_height - y )* _width - 1; x<halfx; ++x, ++i1, ++i2, --i3, --i4)
 	{
-	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i4]); data[i4]->set(t1); 
-	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i3]); data[i3]->set(t2);
+	  //Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i4]); data[i4]->set(t1);
+	  //Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i3]); data[i3]->set(t2);
+	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i3]); data[i3]->set(t1); 
+	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i4]); data[i4]->set(t2);
 	}      
-    }
-  
-  for(int y = 0; y < _height; ++y)
-    {
-      for (int x = 0, x2  = _width/2; x < _width/2; ++x, ++x2)
-	{
-	  int i1 = y * _width + x;
-	  int i2 = y * _width + x2;
-	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i2]); data[i2]->set(t1); 
-	}
     }
   return true;
 }
