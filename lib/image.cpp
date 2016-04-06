@@ -575,7 +575,7 @@ bool Image::convolve_fft()
   int maxd = (_width > _height ? _width : _height);
   maxd = pow2(maxd);
   int nb = (_width/2+1) * (_height); 
-  int zpad = maxd * maxd; //_size + _size - 1;
+  int zpad = _size;//2maxd * maxd; //_size + _size - 1;
   double scale = 1.0/double(_size); // normalization factor
   
   double * in_r = new double[zpad]; std::memset(in_r, 0, zpad * sizeof(double)); 
@@ -588,6 +588,7 @@ bool Image::convolve_fft()
 
   double * f = new double[zpad]; // the filtered image
   
+  zpad = nb;
   // allocate coefficients for forward fourier transformation
   R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
   G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
@@ -651,7 +652,9 @@ bool Image::convolve_fft()
 
   
   /*debug save fft spectrum/phase data*/
-  Image * fft_image = new Image(maxd, maxd);
+  int w = _width;
+  int h = _height;
+  Image * fft_image = new Image(w, h);
   //float maxr = 0; float maxg = 0; float maxb = 0;
 
   /*for (int j=0; j<zpad; ++j)
@@ -664,17 +667,23 @@ bool Image::convolve_fft()
     if (vb > maxb ) maxb = vb;
   }
   */
-  for (int j=0; j<zpad; ++j)
-  {
-    float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
-    float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
-    float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
-    clamp(vr, vg, vb);
-    //printf("%f,%f,%f\n", vr, vg, vb);
-    //vr = -log(vr); vg = -log(vg) ; vb = -log(vb);
-    fft_image->set(j, vr, vg, vb);
-  }
-  fft_image->fftswap();
+  for(int y=0, j=0, i1 = _width*_height-1; y < _height; ++y)
+    {
+      //for (int x=0, j=y*_width, i1 = j + _width-1; x<_width/2; ++x, ++j, --i1)
+      for (int x=0; x<_width/2; ++x, ++j, --i1)
+	{
+
+	  float vr = (float) (R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
+	  float vg = (float) (G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
+	  float vb = (float) (B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
+	  //clamp(vr, vg, vb);
+	  //printf("%f,%f,%f\n", vr, vg, vb);
+	  //vr = -log(vr); vg = -log(vg) ; vb = -log(vb);
+	  fft_image->set(j, vr, vg, vb);
+	  fft_image->set(i1, vr, vg, vb);
+	}
+    }
+  //fft_image->fftswap();
   //fft_image->convert_gs();
   fft_image->save("/home/mjg/Desktop/dbg-fft-spectrum.jpg",100);
   delete fft_image; fft_image = 0;
@@ -754,14 +763,16 @@ bool Image::convolve_fft()
 
 bool Image::fftswap()
 {
-  if (_width != _height) return false;
-  int half = _size/2;
-  for(int y = 0, idu =0, idl = _size-1; y < _height/2; ++y)
+  int halfx = _width/2;
+  int halfy = _height/2;
+  for(int y = 0; y < halfy; ++y)
     {
-      for (int x = 0; x < _width; ++x, ++idu, --idl)
+      for (int x = 0, i1 = y*_width, i2 = y*_width + halfx, 
+	     i3 = (y+halfy)*_width, i4 = (y+halfy)*_width + halfx; x < halfx; ++x, ++i1, ++i2, ++i3, ++i4)
+	//i3 = (_height - y - 1 ) * _width + halfx, i4 = (_height - y )* _width - 1; x<halfx; ++x, ++i1, ++i2, --i3, --i4)
 	{
-	  Pixel<float> * t = data[idu]; data[idu] = data[idl]; data[idl] = t;
-	  if (idu == half-1) return true;
+	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i4]); data[i4]->set(t1); 
+	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i3]); data[i3]->set(t2);
 	}      
     }
   return true;
