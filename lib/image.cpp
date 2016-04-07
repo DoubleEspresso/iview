@@ -650,26 +650,7 @@ bool Image::convolve_fft()
   delete ifilter; ifilter = 0;
   */
 
-  /*debug save fft spectrum/phase data*/
-  int w = _width/2+1;
-  int h = _height;
-  Image * fft_image = new Image(w, h);
-
-  for(int y=0, j=0; y < _height; ++y)
-    {
-      for (int x=0; x<_width/2+1; ++x, ++j)
-	{
-	  float vr = (float) sqrt(R[j][0]*R[j][0] + R[j][1] * R[j][1])/(zpad);
-	  float vg = (float) sqrt(G[j][0]*G[j][0] + G[j][1] * G[j][1])/(zpad);
-	  float vb = (float) sqrt(B[j][0]*B[j][0] + B[j][1] * B[j][1])/(zpad);
-	  vr = 255*log(1+vr); vg = 255*log(1+vg) ; vb = 255*log(1+vb);
-	  clamp(vr, vg, vb);
-	  fft_image->set(j, vr, vg, vb);
-	}
-    }
-  fft_image->fftswap();
-  //fft_image->convert_gs();
-
+  /*
   Image * fft2 = new Image(_width, _height);
   for(int y=0; y<_height; ++y)
     {
@@ -683,10 +664,11 @@ bool Image::convolve_fft()
 	  fft2->set(j2,*fft_image->pixel(j3));
 	}
     }
-  fft2->save("/home/mjg/Desktop/dbg-fft-spectrum.jpg",100);
-  delete fft_image; fft_image = 0;
-  delete fft2; fft2 = 0;
+  */
+  /* debug mag/phase images */
+  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum.jpg", R, G, B, _width, _height);
 
+  /* fourier convolution */
   for (int j=0; j<zpad; ++j)     
     {
       float rre = R[j][0] * C[j][0] - R[j][1] * C[j][1];
@@ -754,6 +736,31 @@ bool Image::fftswap()
 	}      
     }
   return true;
+}
+
+void Image::save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
+{
+  Image * fft2 = new Image(w, h);
+  int sc = (w/2 + 1) * h;
+  for (int y=0; y <h; ++y)
+    {
+      for (int x=0; x<w/2; ++x)
+	{
+	  int j = y * (w/2+1) + (w/2 - x);
+	  float vr = (float) sqrt(R[j][0]*R[j][0] + R[j][1] * R[j][1])/(sc);
+	  float vg = (float) sqrt(G[j][0]*G[j][0] + G[j][1] * G[j][1])/(sc);
+	  float vb = (float) sqrt(B[j][0]*B[j][0] + B[j][1] * B[j][1])/(sc);
+	  vr = 255*log(1+vr); vg = 255*log(1+vg) ; vb = 255*log(1+vb);
+	  clamp(vr, vg, vb);
+	  int j1 = y * w + x;
+	  int j2 = (h - 1 - y) * w  + (w-1) - x;
+	  fft2->set(j1,vr,vg,vb);
+	  fft2->set(j2,vr,vg,vb);
+	}
+    }
+  fft2->fftswap();
+  fft2->save(fname,100);
+  delete fft2; fft2 = 0;
 }
 
 int Image::pow2(int i)

@@ -1,6 +1,8 @@
 #ifndef LIB_IMAGE_H
 #define LIB_IMAGE_H
 
+#include <fftw3.h>
+
 #include "image_jpeg.h"
 #include "filter.h"
 
@@ -122,7 +124,9 @@ class Image
   // ffts
   bool convolve_fft();
   bool fftswap(); // dbg
+  void save_mag_image(char * fname, fftw_complex *R, fftw_complex *G, fftw_complex*B, int w, int h);
   int pow2(int i); // zero padding
+  double * build_fft_filter(double * filter);
 };
 
 #endif
