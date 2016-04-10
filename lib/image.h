@@ -34,13 +34,14 @@ void circshift(ty *in, int xdim, int ydim, int xshift, int yshift)
   delete [] out; out = 0;
 }
 
+// todo : operator overloading on a single pixel (for convenience).
 template<typename T>
 struct Pixel
 {
 public:
   T r; T g; T b; T a;
   
-  Pixel() {};
+  Pixel() : r(0), g(0), b(0) {};
   Pixel(T red, T green, T blue) : r(red), g(green), b(blue) {}
   ~Pixel() {}
   
@@ -107,6 +108,8 @@ class Image
   bool swap_cols2();
   void swap(int i1, int i2);
   bool swap_quadrants(); // similar to fftshift in matlab
+  bool resize(int w, int h, int c = 3);
+  bool on_image(int i);
   
   // size/geometry manipulations
   bool crop();
@@ -114,6 +117,8 @@ class Image
   bool flipv();
   bool subimage();
   bool rotate90();
+  bool binning(int xbin, int ybin);
+  bool binning(int b);
 
   // color operations
   bool invert();

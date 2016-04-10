@@ -17,7 +17,8 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-      im->convolve_fft();
+      //im->convolve_fft();
+      im->binning(2);
       //im->sharpen(3);
       //im->sobel();
       //im->median(3);

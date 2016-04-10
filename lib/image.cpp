@@ -301,15 +301,15 @@ void Image::median(int r)
 	for (int j=0; j<r*r; ++j)
 	  {
 	    if (plist[j])
-	    {
+	      {
 		delete plist[j]; plist[j] = 0;
-	    }
+	      }
 	  }
 	if (plist)
-	{
-	  delete[] plist; plist = 0;
+	  {
+	    delete[] plist; plist = 0;
 	  }
-	}
+      }
 }
 
 void Image::gauss(int ksize, float sigma)
@@ -327,7 +327,7 @@ void Image::gauss(int ksize, float sigma)
 }
 
 
-// pixel space convolution definitions
+// spatial convolution definitions
 bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
 		     float scale, float bias,
 		     float min, float max)
@@ -468,6 +468,81 @@ bool Image::rotate90()
   return true;  
 }
 
+bool Image::binning(int b)
+{
+  if (b <= 1) return true;
+
+  // storage for binned image
+  Pixel<float> ** result;
+  int w = _width / b;
+  int h = _height / b;
+  if (w <= 1 || h <= 1 ) return true;
+  
+  int sz = w * h;
+  float div = b*b;
+  result = new Pixel<float>*[sz];
+  for (int j=0; j<sz; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+
+  for (int y = b/2, idx = 0; y < _height; y += b)
+    {
+      for (int x = b/2; x <_width; x += b, ++idx)
+	{	  
+
+	  double pr = 0; double pg = 0; double pb = 0;
+
+	  for (int ry = y-b/2; ry < y + b/2; ++ry)
+	    {
+	      for (int rx = x-b/2; rx < x + b/2; ++rx)
+		{
+		  int i = ry * _width + rx;
+		  if (!on_image(i)) continue;
+		  pr += data[i]->r; pg += data[i]->g; pb += data[i]->b;
+		}
+	    }
+	  pr /= div; pg /= div; pb /= div;
+	  result[idx]->set(pr, pg, pb);
+	}
+    }
+
+  resize(w, h); // updates width/height/and size
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->set(*result[j]);
+    }
+  
+  if (result)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete result[j]; result[j] = 0;
+	}
+      delete[] result; result = 0;
+    }
+
+  return true;
+}
+
+/*note: resize will clear all data, allocate a new array of zeros*/
+bool Image::resize(int w, int h, int c)
+{
+  if (data)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete data[j]; data[j] = 0;
+	}
+      delete[] data; data = 0;
+    }
+  init(w, h, c);
+}
+
+bool Image::on_image(int i)
+{
+  return (i >= 0 && i < _size);
+}
 
 
 /* color operations section */
@@ -548,6 +623,7 @@ Pixel<float> Image::select_median(Pixel<float> ** pixel_list, int sz)
   return median;
 }
 
+// TODO: update/replace
 bool Image::threshold(float val)
 {
   median(3);
@@ -712,7 +788,9 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = .001;
+  double s = 1;
+  double r0 = 16;
+  double n = 4;
   double range = 10;
   double norm = 1;
   double freq = 1.25;//2.0/_width; 
@@ -725,10 +803,12 @@ bool Image::convolve_fft()
 	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
 	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
 	  //f[idx] = sin( 2.0 * M_PI * freq * x);
-	  double r2 = xn * xn + yn * yn;
+	  double r2 = sqrt(xn * xn + yn * yn);
 	  //if (r2 == 0) f[idx] = 1.0;
 	  //else f[idx] = sin(freq * M_PI * sqrt(r2)) / (freq * M_PI * sqrt(r2));
-	  f[idx] = 1-exp(-r2 *exps );
+	  //f[idx] = 1-exp(-r2 *exps );
+	  //f[idx] = 1.0 / (1.0 + pow( (sqrt(2) - 1.0) * (r2 / r0), 2 * n)); // low pass butterworth filter
+	  f[idx] = 1.0 / (1.0 + pow( (sqrt(2) - 1.0) * (r0 / r2), 2 * n)); // high pass butterworth filter
 	  norm += f[idx];
 	}
     }
