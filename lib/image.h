@@ -99,7 +99,15 @@ class Image
   bool convolve(Pixel<float> ** &result, float* kernel, int kdim, float scale=1, float bias=0, float min=0, float max=255);
   Pixel<float> select_median(Pixel<float> ** pixel_list, int sz);
   bool threshold(float val);
-
+  bool swap_rows();
+  bool swap_cols();
+  bool swap_cols(double * d, int w, int h);
+  bool swap_rows(double * d, int w, int h);
+  bool swap_rows2();
+  bool swap_cols2();
+  void swap(int i1, int i2);
+  bool swap_quadrants(); // similar to fftshift in matlab
+  
   // size/geometry manipulations
   bool crop();
   bool fliph();
@@ -123,10 +131,12 @@ class Image
 
   // ffts
   bool convolve_fft();
-  bool fftswap(); // dbg
   void save_mag_image(char * fname, fftw_complex *R, fftw_complex *G, fftw_complex*B, int w, int h);
+  void save_mag_image2(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h);
+  double * build_fft_filter(double * filter, int w, int h);
+  void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, fftw_complex*C, int w, int h);
+  void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, double*C, int w, int h);
   int pow2(int i); // zero padding
-  double * build_fft_filter(double * filter);
 };
 
 #endif

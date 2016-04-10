@@ -4,7 +4,6 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
-#include <fftw3.h>
 
 #include "image.h"
 #include "stringutils.h"
@@ -565,6 +564,105 @@ bool Image::threshold(float val)
   return true;
 }
 
+// note: this function swaps col indices i and i+width/2 ..
+// different from swapping first and last element in the row
+bool Image::swap_cols2()
+{
+  int halfx = _width/2;
+  for(int y = 0; y < _height; ++y)
+    {
+      for (int x=0, i1=y*_width, i2=y*_width+halfx; x<halfx; ++x, ++i1, ++i2)
+	{
+	  swap(i1,i2);
+	}
+    }
+  return true;
+}
+
+// note: this function swaps row indices i and i+height/2 ..
+// different from swapping first and last element in the col
+bool Image::swap_rows2()
+{
+  int halfy = _height/2;
+  for(int y = 0; y < halfy; ++y)
+    {
+      for (int x=0, i1=y*_width, i2=(halfy + y)*_width; x<_width; ++x, ++i1, ++i2)
+	{
+	  swap(i1, i2);
+	}
+    }
+  return true;
+}
+
+bool Image::swap_rows(double * d, int w, int h)
+{
+  int halfy = h/2;
+  for(int y = 0; y < halfy; ++y)
+    {
+      for (int x=0, i1=y*w, i2=(halfy + y)*w; x<w; ++x, ++i1, ++i2)
+	{
+	  double d1 = d[i1]; d[i1] = d[i2]; d[i2] = d1;
+	}
+    }
+  return true;
+}
+
+bool Image::swap_cols(double * d, int w, int h)
+{
+  int halfx = w/2;
+  for(int y = 0; y < h; ++y)
+    {
+      for (int x=0, i1=y*w, i2=y*w+halfx; x<halfx; ++x, ++i1, ++i2)
+	{
+	  double d1 = d[i1]; d[i1] = d[i2]; d[i2] = d1;
+	}
+    }
+  return true;
+}
+
+
+
+void Image::swap(int i1, int i2)
+{
+  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i2]); data[i2]->set(t1); 
+}
+
+bool Image::swap_rows()
+{
+  int halfx = _width/2;
+  int halfy = _height/2;
+  for(int y = 0; y < halfy; ++y)
+    {
+      for (int x = 0, i1 = y*_width, i2 = y*_width + halfx, 
+	     i3 = (y+halfy)*_width, i4 = (y+halfy)*_width + halfx; x < halfx; ++x, ++i1, ++i2, ++i3, ++i4)
+	{
+	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i3]); data[i3]->set(t1); 
+	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i4]); data[i4]->set(t2);
+	}      
+    }
+  return true;
+}
+
+bool Image::swap_cols()
+{
+  int halfx = _width/2;
+  int halfy = _height/2;
+  for(int y = 0; y < _height; ++y)
+    {
+      for (int x = 0,
+	     i1 = y*_width,  // top left
+	     i2 = y*_width + _width - 1,  // top right
+	     i3 = (_height-y-1)*_width, // bottom left
+	     i4 = (_height-y-1)*_width + _width - 1; // bottom right
+	   x < halfx; ++x, ++i1, --i2, ++i3, --i4)
+	{
+	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i2]); data[i2]->set(t1); 
+	  Pixel<float> t2 = *data[i3]; data[i3]->set(*data[i4]); data[i4]->set(t2);
+	}      
+    }
+  return true;
+}
+
 bool Image::convolve_fft()
 {
   fftw_plan rplan, gplan, bplan, irplan, igplan, ibplan, fplan; 
@@ -586,7 +684,7 @@ bool Image::convolve_fft()
   double * out_g = new double[zpad]; std::memset(out_g, 0, zpad * sizeof(double)); 
   double * out_b = new double[zpad]; std::memset(out_b, 0, zpad * sizeof(double)); 
 
-  double * f = new double[zpad]; // the filtered image
+  double * f = new double[zpad]; // filter image
   
   zpad = nb;
   // allocate coefficients for forward fourier transformation
@@ -614,7 +712,7 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = 1;
+  double s = 5;
   double range = 10;
   double norm = 1;
   double freq = 1.25;//2.0/_width; 
@@ -624,8 +722,8 @@ bool Image::convolve_fft()
     {
       for (int x=0; x<_width; ++x, ++idx)
 	{	  
-	  double xn = x;//2.0*range * double( x - _width/2.0 ) / double(_width);
-	  double yn = y;//2.0*range * double( y - _height/2.0 ) / double(_height);
+	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
+	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
 	  //f[idx] = sin( 2.0 * M_PI * freq * x);
 	  double r2 = xn * xn + yn * yn;
 	  //if (r2 == 0) f[idx] = 1.0;
@@ -634,21 +732,35 @@ bool Image::convolve_fft()
 	  norm += f[idx];
 	}
     }
-  for (int j=0; j<_size; ++j) f[j] *= 1/norm;
-  fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
-  fftw_execute(fplan);
-  
-  /* debug save image filter */
-  /*
-  Image * ifilter = new Image(_width, _height);
-  for (int j=0; j<_size; ++j)
+
+  Image * ifilter1 = new Image(_width, _height);
+  for (int j=0; j<(_width)*_height; ++j)
     {      
-      ifilter->set(j,(float)255*f[j]);
+      ifilter1->set(j,255*(float)f[j]);
+    }
+  ifilter1->convert_gs();
+  ifilter1->save("/home/mjg/Desktop/dbg-frequency-filter.jpg",100);
+  delete ifilter1; ifilter1 = 0;
+
+  save_mag_image2("/home/mjg/Desktop/dbg-fft-spectrum-before-filter.jpg", R, G, B, _width, _height);
+  
+  //for (int j=0; j<_size; ++j) f[j] *= 1/norm;
+  double * ff = build_fft_filter(f, _width, _height);  
+  fourier_convolve(R, G, B, f, _width/2+1, _height);
+
+
+  //fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
+  //fftw_execute(fplan);
+  
+  /* debug save image filter */  
+  Image * ifilter = new Image(_width/2+1, _height);
+  for (int j=0; j<(_width/2+1)*_height; ++j)
+    {      
+      ifilter->set(j,255*(float)ff[j]);
     }
   ifilter->convert_gs();
-  ifilter->save("/home/mjg/Desktop/dbg-gauss-filter.jpg",100);
+  ifilter->save("/home/mjg/Desktop/dbg-frequency-after-filter.jpg",100);
   delete ifilter; ifilter = 0;
-  */
 
   /*
   Image * fft2 = new Image(_width, _height);
@@ -666,9 +778,11 @@ bool Image::convolve_fft()
     }
   */
   /* debug mag/phase images */
-  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum.jpg", R, G, B, _width, _height);
+  save_mag_image2("/home/mjg/Desktop/dbg-fft-spectrum-after-filter.jpg", R, G, B, _width, _height);
 
   /* fourier convolution */
+
+  /*
   for (int j=0; j<zpad; ++j)     
     {
       float rre = R[j][0] * C[j][0] - R[j][1] * C[j][1];
@@ -683,7 +797,7 @@ bool Image::convolve_fft()
       float bim = B[j][1] * C[j][0] + B[j][0] * C[j][1];
       B[j][0] = bre; B[j][1] = bim;
     }
-
+  */
   irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
   igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
   ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
@@ -691,7 +805,7 @@ bool Image::convolve_fft()
   fftw_execute(irplan);
   fftw_execute(igplan);
   fftw_execute(ibplan);
-  
+
   // normalization
   for (int j=0; j<_size; ++j)
     {
@@ -699,7 +813,7 @@ bool Image::convolve_fft()
       data[j]->g = out_g[j] * 1/_size;
       data[j]->b = out_b[j] * 1/_size;
     }
-
+  
   fftw_destroy_plan(rplan);
   fftw_destroy_plan(gplan);
   fftw_destroy_plan(bplan);
@@ -716,31 +830,13 @@ bool Image::convolve_fft()
   if (out_g) { delete [] out_g; out_g = 0; }
   if (out_b) { delete [] out_b; out_b = 0; } 
   if (f) { delete [] f; f = 0; }
-
-  return true;
-}
-
-bool Image::fftswap()
-{
-  int halfx = _width/2;
-  int halfy = _height/2;
-  for(int y = 0; y < halfy; ++y)
-    {
-      for (int x = 0, i1 = y*_width, i2 = y*_width + halfx, 
-	     i3 = (y+halfy)*_width, i4 = (y+halfy)*_width + halfx; x < halfx; ++x, ++i1, ++i2, ++i3, ++i4)
-	{
-	  //Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i4]); data[i4]->set(t1);
-	  //Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i3]); data[i3]->set(t2);
-	  Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i3]); data[i3]->set(t1); 
-	  Pixel<float> t2 = *data[i2]; data[i2]->set(*data[i4]); data[i4]->set(t2);
-	}      
-    }
+  if (ff) { delete [] ff; ff = 0; }
   return true;
 }
 
 void Image::save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
 {
-  Image * fft2 = new Image(w, h);
+  Image * mag_img = new Image(w, h);
   int sc = (w/2 + 1) * h;
   for (int y=0; y <h; ++y)
     {
@@ -754,13 +850,111 @@ void Image::save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fft
 	  clamp(vr, vg, vb);
 	  int j1 = y * w + x;
 	  int j2 = (h - 1 - y) * w  + (w-1) - x;
-	  fft2->set(j1,vr,vg,vb);
-	  fft2->set(j2,vr,vg,vb);
+	  mag_img->set(j1,vr,vg,vb);
+	  mag_img->set(j2,vr,vg,vb);
 	}
     }
-  fft2->fftswap();
-  fft2->save(fname,100);
-  delete fft2; fft2 = 0;
+  mag_img->swap_rows();
+  mag_img->save(fname,100);
+  delete mag_img; mag_img = 0;
+}
+
+void Image::save_mag_image2(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
+{
+  Image * mag_img = new Image(w, h);
+  int sc = (w/2 + 1) * h;
+  for (int y=0; y<h; ++y)
+    {
+      for (int x=0; x<w/2; ++x)
+	{
+	  int j = y * (w/2+1) + x;
+	  float vr = (float) sqrt(R[j][0]*R[j][0] + R[j][1] * R[j][1])/(sc);
+	  float vg = (float) sqrt(G[j][0]*G[j][0] + G[j][1] * G[j][1])/(sc);
+	  float vb = (float) sqrt(B[j][0]*B[j][0] + B[j][1] * B[j][1])/(sc);
+	  vr = 255*log(1+vr); vg = 255*log(1+vg) ; vb = 255*log(1+vb);
+	  clamp(vr, vg, vb);
+	  int j1 = y * w + x;
+	  mag_img->set(j1,vr,vg,vb);
+
+	  if (x > 0)
+	    {
+	      int j2 = (h - 1 - y) * w  + (w-1) - (x-1);
+	      mag_img->set(j2,vr,vg,vb);
+	    }
+	}
+    }
+  mag_img->swap_rows2();
+  mag_img->swap_cols2();
+  mag_img->save(fname,100);
+  delete mag_img; mag_img = 0;
+}
+
+// assumes input filter is of size w*h (and radially symmetric for fourier spectrum)
+double * Image::build_fft_filter(double * filter, int w, int h)
+{
+  swap_cols(filter, w, h);
+  swap_rows(filter, w, h);
+
+  /*
+  Image * ifilter1 = new Image(w, h);
+  for (int j=0; j<w*h; ++j)
+    {      
+      ifilter1->set(j,255*(float)filter[j]);
+    }
+  ifilter1->convert_gs();
+  ifilter1->save("/home/mjg/Desktop/dbg-frequency-filter-swapped.jpg",100);
+  delete ifilter1; ifilter1 = 0;
+  */
+  double * ffilter = new double[ h * (w/2+1)];
+  for (int y=0, i1 = 0; y<h; ++y)
+    {
+      for (int x=0; x<w/2+1; ++x, ++i1)
+	{
+	  int i2 = y * w + x;
+	  ffilter[i1] = filter[i2];
+	}
+    }
+
+  /*
+  Image * ifilter2 = new Image(w/2+1, h);
+  for (int j=0; j<(w/2+1)*h; ++j)
+    {      
+      ifilter2->set(j,255*(float)ffilter[j]);
+    }
+  ifilter2->convert_gs();
+  ifilter2->save("/home/mjg/Desktop/dbg-frequency-filter-chopped.jpg",100);
+  delete ifilter2; ifilter2 = 0;
+  */
+  return ffilter;
+}
+
+// note: this scales both the real and complex components of the fourier spectrum
+void Image::fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, double*C, int w, int h)
+{
+    for (int j=0; j<w*h; ++j)     
+    {
+      /*
+      float rre = R[j][0] * C[j] - R[j][1] * C[j];
+      float rim = R[j][1] * C[j] + R[j][0] * C[j];
+      R[j][0] = rre; R[j][1] = rim;
+      
+      float gre = G[j][0] * C[j] - G[j][1] * C[j];
+      float gim = G[j][1] * C[j] + G[j][0] * C[j];
+      G[j][0] = gre; G[j][1] = gim;
+      
+      float bre = B[j][0] * C[j] - B[j][1] * C[j];
+      float bim = B[j][1] * C[j] + B[j][0] * C[j];
+      B[j][0] = bre; B[j][1] = bim;
+      */
+      R[j][0] *= C[j];
+      R[j][1] *= C[j];
+      
+      G[j][0] *= C[j];
+      G[j][1] *= C[j];
+      
+      B[j][0] *= C[j];
+      B[j][1] *= C[j];
+    }
 }
 
 int Image::pow2(int i)
