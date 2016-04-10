@@ -544,6 +544,35 @@ bool Image::on_image(int i)
   return (i >= 0 && i < _size);
 }
 
+bool Image::fliph()
+{
+  if (!data || _width <= 1 || _height <= 1) return false;  
+  for (int x = 0, idx = _width-1; x < _width / 2; ++x, --idx)
+    {
+      for (int y=0 ; y < _height; ++y)
+	{
+	  int il = y * _width + x;
+	  int ir = y * _width + idx;
+	  swap(il, ir);
+	}
+    }
+  return true;
+}
+
+bool Image::flipv()
+{
+  if (!data || _width <= 1 || _height <= 1) return false;  
+  for (int y = 0, idx = _height-1; y < _height / 2; ++y, --idx)
+    {
+      for (int x=0 ; x<_width; ++x)
+	{
+	  int iup = y * _width + x;
+	  int ido = idx * _width + x;
+	  swap(iup, ido);
+	}
+    }
+  return true;
+}
 
 /* color operations section */
 float Image::input_intensity(float I, float G, float max)
