@@ -131,8 +131,7 @@ class Image
 
   // ffts
   bool convolve_fft();
-  void save_mag_image(char * fname, fftw_complex *R, fftw_complex *G, fftw_complex*B, int w, int h);
-  void save_mag_image2(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h);
+  void save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h);
   double * build_fft_filter(double * filter, int w, int h);
   void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, fftw_complex*C, int w, int h);
   void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, double*C, int w, int h);

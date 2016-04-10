@@ -712,7 +712,7 @@ bool Image::convolve_fft()
   fftw_execute(bplan);
   
   /* filtering dbg */
-  double s = 5;
+  double s = .001;
   double range = 10;
   double norm = 1;
   double freq = 1.25;//2.0/_width; 
@@ -728,7 +728,7 @@ bool Image::convolve_fft()
 	  double r2 = xn * xn + yn * yn;
 	  //if (r2 == 0) f[idx] = 1.0;
 	  //else f[idx] = sin(freq * M_PI * sqrt(r2)) / (freq * M_PI * sqrt(r2));
-	  f[idx] = exp(-r2 *exps );
+	  f[idx] = 1-exp(-r2 *exps );
 	  norm += f[idx];
 	}
     }
@@ -742,11 +742,11 @@ bool Image::convolve_fft()
   ifilter1->save("/home/mjg/Desktop/dbg-frequency-filter.jpg",100);
   delete ifilter1; ifilter1 = 0;
 
-  save_mag_image2("/home/mjg/Desktop/dbg-fft-spectrum-before-filter.jpg", R, G, B, _width, _height);
+  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum-before-filter.jpg", R, G, B, _width, _height);
   
   //for (int j=0; j<_size; ++j) f[j] *= 1/norm;
   double * ff = build_fft_filter(f, _width, _height);  
-  fourier_convolve(R, G, B, f, _width/2+1, _height);
+  fourier_convolve(R, G, B, ff, _width/2+1, _height);
 
 
   //fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
@@ -778,10 +778,9 @@ bool Image::convolve_fft()
     }
   */
   /* debug mag/phase images */
-  save_mag_image2("/home/mjg/Desktop/dbg-fft-spectrum-after-filter.jpg", R, G, B, _width, _height);
+  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum-after-filter.jpg", R, G, B, _width, _height);
 
   /* fourier convolution */
-
   /*
   for (int j=0; j<zpad; ++j)     
     {
@@ -835,31 +834,6 @@ bool Image::convolve_fft()
 }
 
 void Image::save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
-{
-  Image * mag_img = new Image(w, h);
-  int sc = (w/2 + 1) * h;
-  for (int y=0; y <h; ++y)
-    {
-      for (int x=0; x<w/2; ++x)
-	{
-	  int j = y * (w/2+1) + (w/2 - x);
-	  float vr = (float) sqrt(R[j][0]*R[j][0] + R[j][1] * R[j][1])/(sc);
-	  float vg = (float) sqrt(G[j][0]*G[j][0] + G[j][1] * G[j][1])/(sc);
-	  float vb = (float) sqrt(B[j][0]*B[j][0] + B[j][1] * B[j][1])/(sc);
-	  vr = 255*log(1+vr); vg = 255*log(1+vg) ; vb = 255*log(1+vb);
-	  clamp(vr, vg, vb);
-	  int j1 = y * w + x;
-	  int j2 = (h - 1 - y) * w  + (w-1) - x;
-	  mag_img->set(j1,vr,vg,vb);
-	  mag_img->set(j2,vr,vg,vb);
-	}
-    }
-  mag_img->swap_rows();
-  mag_img->save(fname,100);
-  delete mag_img; mag_img = 0;
-}
-
-void Image::save_mag_image2(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
 {
   Image * mag_img = new Image(w, h);
   int sc = (w/2 + 1) * h;
@@ -931,21 +905,8 @@ double * Image::build_fft_filter(double * filter, int w, int h)
 // note: this scales both the real and complex components of the fourier spectrum
 void Image::fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, double*C, int w, int h)
 {
-    for (int j=0; j<w*h; ++j)     
+  for (int j=0; j<w*h; ++j)     
     {
-      /*
-      float rre = R[j][0] * C[j] - R[j][1] * C[j];
-      float rim = R[j][1] * C[j] + R[j][0] * C[j];
-      R[j][0] = rre; R[j][1] = rim;
-      
-      float gre = G[j][0] * C[j] - G[j][1] * C[j];
-      float gim = G[j][1] * C[j] + G[j][0] * C[j];
-      G[j][0] = gre; G[j][1] = gim;
-      
-      float bre = B[j][0] * C[j] - B[j][1] * C[j];
-      float bim = B[j][1] * C[j] + B[j][0] * C[j];
-      B[j][0] = bre; B[j][1] = bim;
-      */
       R[j][0] *= C[j];
       R[j][1] *= C[j];
       
