@@ -2,9 +2,12 @@
 
 #include "image.h"
 #include "image_jpeg.h"
+#include "image_tiff.h"
 
 int main(int argc, char * argv[])
 {
+  Image_TIFF * itiff = new Image_TIFF();
+  itiff->load_tiff("/home/mjg/Desktop/minisblack-1c-8b.tiff");
   Image * im = new Image();
   if (im->load("/home/mjg/Desktop/test-blur.jpg"))///home/mjg/photos/carson-phone/IMG_1215.JPG"))
     {

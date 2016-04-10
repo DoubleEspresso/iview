@@ -31,6 +31,7 @@ bool Image_TIFF::load_tiff(char * fname)
     {
       init_gs();
       read_gs();
+      printf("..load tiff ok\n");
     }
   else if (_comps == 3)
     {
@@ -44,7 +45,12 @@ bool Image_TIFF::load_tiff(char * fname)
       clear_rgb();
       return false;
     }
+  return true;
+}
 
+bool Image_TIFF::save_tiff(char * filename)
+{
+  return true;
 }
 
 bool Image_TIFF::read_gs()

@@ -24,10 +24,6 @@ class Image_TIFF
   uint8 * gs_data_8;
   uint16* gs_data_16;
   uint32* gs_data_32;
-  /*TiffRGB<uint8>  ** data_8;
-  TiffRGB<uint16> ** data_16;
-  TiffRGB<uint32> ** data_32;
-  */
   uint8 * data_8;
   uint16 * data_16;
   uint32 * data_32;
