@@ -21,6 +21,7 @@ class Image_TIFF
   int _depth;
   int _bytes;
   int _order;
+  int _config;
   uint8 * gs_data_8;
   uint16* gs_data_16;
   uint32* gs_data_32;
@@ -42,7 +43,7 @@ class Image_TIFF
 
   /*main io methods/wrappers*/
   bool load_tiff(char * filename);
-  bool save_tiff(char * filename);
+  bool save_tiff(char * filename, bool LZW_compress = false);
   bool read_gs();
   bool read_rgb();
 
