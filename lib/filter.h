@@ -10,7 +10,8 @@ enum FilterType
     Sobel,
     Emboss3x3 , Emboss5x5 , Emboss7x7,
     Median3x3 , Median5x5 , Median7x7,
-    Gauss3x3  , Gauss5x5  , Gauss7x7
+    Gauss3x3  , Gauss5x5  , Gauss7x7,
+    DX3x3, DY3x3
   };
 
 template<typename T>
@@ -39,6 +40,8 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
       case Gauss3x3: _size = 3; break;
       case Gauss5x5: _size = 5; break;
       case Gauss7x7: _size = 7; break;
+      case DX3x3: _size = 3; break;
+      case DY3x3: _size = 3; break;
       default: break;	
       }
     init();
@@ -73,6 +76,8 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
       case Median3x3: set_median3x3(); break;
       case Median5x5: set_median5x5(); break;
       case Median7x7: set_median7x7(); break;
+      case DX3x3: set_dx3x3(); break;
+      case DY3x3: set_dy3x3(); break;
       }
     return true;
   }
@@ -183,6 +188,22 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
       }
   }
   
+  void set_dy3x3()
+  {
+    if (!kernel) kernel = new T[9];
+    kernel[0] = -1; kernel[1] = -1; kernel[2] = -1;
+    kernel[3] = 0; kernel[4] = 0; kernel[5] = 0;
+    kernel[6] = 1; kernel[7] = 1; kernel[8] = 1;
+  }
+  
+  void set_dx3x3()
+  {
+    if (!kernel) kernel = new T[9];
+    kernel[0] = -1; kernel[1] = 0; kernel[2] = 1;
+    kernel[3] = -1; kernel[4] = 0; kernel[5] = 1;
+    kernel[6] = -1; kernel[7] = 0; kernel[8] = 1;
+  }
+
   // utility methods
   T * get_kernel() { return kernel; }
   bool set_kernel(T * src, int size)

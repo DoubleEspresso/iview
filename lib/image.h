@@ -133,6 +133,8 @@ class Image
   void emboss(int ksize);
   void median(int r);
   void gauss(int ksize, float sigma);
+  void gradientX();
+  void gradientY();
 
   // ffts
   bool convolve_fft();

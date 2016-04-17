@@ -175,25 +175,26 @@ void Image::sharpen(int ksize)
     case 7: filter = new Filter<float>(Sharpen7x7); break;
     }  
   convolve(filter->get_kernel(), filter->dim());  
+  if (filter) { delete filter; filter = 0; }
 }
 
 void Image::sobel()
 {
+  
     if (filter)
     {
       delete filter; filter = 0;
     }
-
+      
     Pixel<float> ** resultX;
     Pixel<float> ** resultY;
     
     filter = new Filter<float>(Sobel);
     filter->set_sobelX();
-
     convolve(resultX, filter->get_kernel(), filter->dim());
-
     filter->set_sobelY();
     convolve(resultY, filter->get_kernel(), filter->dim());
+
 
     for (int j=0; j<_size; ++j)
       {
@@ -214,6 +215,7 @@ void Image::sobel()
 	  }
 	delete[] resultX; resultX = 0;
       }
+
     if (resultY)
       {
 	for (int j=0; j<_size; ++j)
@@ -222,6 +224,7 @@ void Image::sobel()
 	  }
 	delete[] resultY; resultY = 0;
       }
+    if (filter) { delete filter; filter = 0; }
 }
 
 void Image::emboss(int ksize)
@@ -238,6 +241,7 @@ void Image::emboss(int ksize)
     case 7: filter = new Filter<float>(Emboss7x7); break;
     }  
   convolve(filter->get_kernel(), filter->dim(), 1.0, 128.0);  
+  if (filter) { delete filter; filter = 0; }
 }
 
 void Image::median(int r)
@@ -324,8 +328,31 @@ void Image::gauss(int ksize, float sigma)
       filter->set_gauss7x7(sigma); break;
     }  
   convolve(filter->get_kernel(), filter->dim());  
+  if (filter) { delete filter; filter = 0; }
 }
 
+
+void Image::gradientX()
+{
+  if (filter)
+    {
+      delete filter; filter = 0;
+    }
+  filter = new Filter<float>(DX3x3);
+  convolve(filter->get_kernel(), filter->dim());
+  if (filter) { delete filter; filter = 0; }
+}
+
+void Image::gradientY()
+{
+  if (filter)
+    {
+      delete filter; filter = 0;
+    }
+  filter = new Filter<float>(DY3x3);
+  convolve(filter->get_kernel(), filter->dim());
+  if (filter) { delete filter; filter = 0; }
+}
 
 // spatial convolution definitions
 bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
@@ -360,10 +387,12 @@ bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
 		}
 	    }
 	  clamp(red, grn, blu, scale, bias, min, max);
+
 	  result[ci]->set(red, grn, blu);
+
 	}
     }
-  if (filter) { delete filter; filter = 0; }
+  //if (filter) { delete filter; filter = 0; }
   return result;
 }
 
@@ -421,7 +450,7 @@ bool Image::convolve(float * kernel, int kdim,
 	}
       delete[] result; result = 0;
     }
-  if (filter) { delete filter; filter = 0; }
+  //if (filter) { delete filter; filter = 0; }
   return true;
 }
 

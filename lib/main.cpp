@@ -28,9 +28,11 @@ int main(int argc, char * argv[])
 	     jptr->size());
  
       //im->convolve_fft();
-      im->binning(5);
+      //im->binning(5);
       //im->sharpen(3);
-      //im->sobel();
+      im->gauss(5, 6);
+      im->sobel();
+      //im->gradientY();
       //im->median(3);
       //im->median(3);
       //im->median(3);
