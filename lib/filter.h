@@ -2,6 +2,7 @@
 #define LIB_FILTER_H
 
 #include <math.h>
+#include "filter2.h"
 
 enum FilterType
   {

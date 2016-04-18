@@ -24,6 +24,22 @@ Image::Image(uint w, uint h) :
   init(w,h,3);
 }
 
+Image::Image(Image& other) :
+  _height(other.height()), _width(other.width()), _comps(other.comps()),
+  _size(other.size()), data(0), jpeg_handle(other.get_handle()), filter(other.img_filter())
+{
+  gammas.r = 1; gammas.b = 1; gammas.g = 1;
+  data = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    { 
+      float r = other.pixel(j)->r;
+      float g = other.pixel(j)->g;
+      float b = other.pixel(j)->b;
+      data[j] = new Pixel<float>(r,g,b);
+    }
+  
+}
+
 Image::~Image() 
 {
   if (filter)
@@ -37,7 +53,7 @@ Image::~Image()
 	{
 	  delete data[j]; data[j] = 0;
 	}
-      delete[] data; data = 0;
+      delete[] data; data = 0; 
     }  
 }
 
@@ -110,9 +126,9 @@ bool Image::load(char * filename)
 }
 
 int Image::comps() { return _comps; }
-int Image::width() { return _width; }
-int Image::height(){ return _height;}
-int Image::size()  { return _size; }
+int Image::width()  { return _width; }
+int Image::height() { return _height;}
+int Image::size() { return _size; }
 
 bool Image::get_texture_data(unsigned char * gldata, int size)
 {
@@ -354,6 +370,63 @@ void Image::gradientY()
   if (filter) { delete filter; filter = 0; }
 }
 
+void Image::gradientTheta(Pixel<float> ** &result)
+{
+  if (filter)
+    {
+      delete filter; filter = 0;
+    }
+
+  // convert image to grayscale first ??
+  // TODO: should really move data to a grayscale array
+  // no need to store all 3 rgb channels anymore
+  Image * gs = new Image(*this);
+  gs->convert_gs();
+
+  Pixel<float> ** resultX;
+  Pixel<float> ** resultY;
+
+  filter = new Filter<float>(Sobel);
+
+  filter->set_sobelX();
+  gs->convolve(resultX, filter->get_kernel(), filter->dim(), 1, 0, -5000, 5000);
+
+  filter->set_sobelY();
+  gs->convolve(resultY, filter->get_kernel(), filter->dim(), 1, 0, -5000, 5000);
+
+  result = new Pixel<float>*[_size]; // caller frees this (?)
+  double eps = 1e-6;
+  for (int j=0; j<_size; ++j)
+    {      
+      double tr = atan(resultY[j]->r / (resultX[j]->r+eps));
+      //double tg = atan(resultY[j]->g / (resultX[j]->g+eps));
+      //double tb = atan(resultY[j]->b / (resultX[j]->b+eps));
+
+      // no clamping! nb: gs data only has one unique component
+      result[j] = new Pixel<float>(tr, tr, tr); 
+    }    
+
+  // cleanup
+  if (resultX)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete resultX[j]; resultX[j] = 0;
+	}
+      delete[] resultX; resultX = 0;
+    }
+  
+  if (resultY)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete resultY[j]; resultY[j] = 0;
+	}
+      delete[] resultY; resultY = 0;
+    }
+  //if (gs) { delete gs; gs = 0; } // TODO : segfaults here
+}
+
 // spatial convolution definitions
 bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
 		     float scale, float bias,
@@ -556,6 +629,59 @@ bool Image::binning(int b)
   return true;
 }
 
+// inplace xform inside current image bounds
+bool Image::xform(float tx, float ty, float centerx, float centery, float deg, float scale)
+{
+
+  // storage for new image
+  Pixel<float> ** result;
+  result = new Pixel<float>*[_size];
+  for (int j=0; j<_size; ++j)
+    {
+      result[j] = new Pixel<float>(0,0,0);
+    }
+  
+  double ct = cos(M_PI / 180.0 * deg);
+  double st = sin(M_PI / 180.0 * deg);
+
+  // x' = x cos - y sin 
+  // y' = x sin + y cos
+  if (scale <=0 ) scale = 100.0;
+  double sc = 1.0/(scale / 100.0);
+  for (int y = 0, idx = 0; y < _height; ++y)
+    {
+      for (int x = 0; x < _width; ++x, ++idx)
+	{
+	  float cx = (x - centerx - tx); float cy = (y - centery - ty);
+	  float nx = centerx + sc * (cx * ct - cy * st);
+	  float ny = centery + sc * (cx * st + cy * ct);
+	  
+	  // bilinear interpolation
+	  if ( nx >= 0 && nx < _width-1 && ny >= 0 && ny < _height-1 )
+	    {	      
+	      result[idx]->set( *interpolate<bilinear>(nx, ny));
+	    }
+	}
+    }
+
+  // copy and cleanup
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->set(*result[j]);
+    }
+  
+  if (result)
+    {
+      for (int j=0; j<_size; ++j)
+	{
+	  delete result[j]; result[j] = 0;
+	}
+      delete[] result; result = 0;
+    }
+
+  return true;
+}
+
 /*note: resize will clear all data, allocate a new array of zeros*/
 bool Image::resize(int w, int h, int c)
 {
@@ -642,6 +768,30 @@ bool Image::convert_gs()
   return true;
 }
 
+template<Interpolation i>
+Pixel<float> * Image::interpolate(float x, float y)
+{
+  Pixel<float> * result;
+  switch (i)
+    {
+    case nearestneighbor: break;
+    case bilinear: 
+      {	
+
+	float nx = x - int(x); float ny = y - int(y);
+	result = new Pixel<float>(0,0,0);
+	result->set((*pixel(x,y)) * (1-nx) * (1-ny) + 
+		    (*pixel(x+1,y))   * nx * (1-ny) + 
+		    (*pixel(x,y+1))   * (1-nx) * ny +
+		    (*pixel(x+1,y+1))     * nx * ny);            
+	clamp(result);
+	break;
+      }
+    case bicubic: break;
+    }
+  return result;
+}
+
 /* utilities section */
 void Image::clamp(float& r,
 		  float& g,
@@ -654,6 +804,19 @@ void Image::clamp(float& r,
   r = r * scale + bias; r = (r < min ? min : r) ; r = (r > max ? max : r);
   g = g * scale + bias; g = (g < min ? min : g) ; g = (g > max ? max : g);
   b = b * scale + bias; b = (b < min ? min : b) ; b = (b > max ? max : b);
+}
+
+void Image::clamp(Pixel<float>* p,
+		  float scale,
+		  float bias,
+		  float min,
+		  float max)
+{
+  float r = p->r; float g = p->g; float b = p->b;
+  r = r * scale + bias; r = (r < min ? min : r) ; r = (r > max ? max : r);
+  g = g * scale + bias; g = (g < min ? min : g) ; g = (g > max ? max : g);
+  b = b * scale + bias; b = (b < min ? min : b) ; b = (b > max ? max : b);
+  p->r = r; p->g = g; p->b = b;
 }
 
 int Image::wrap(int i, int max)
