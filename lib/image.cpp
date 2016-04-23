@@ -408,10 +408,20 @@ void Image::gradientTheta(Pixel<float> ** &result)
   filter = new Filter<float>(Sobel);
 
   filter->set_sobelX();
-  gs->convolve(resultX, filter->get_kernel(), filter->dim(), 1, 0, -5000, 5000);
+  gs->convolve(resultX, filter->get_kernel(), filter->dim(), 1, 0, 0, 255);
 
   filter->set_sobelY();
-  gs->convolve(resultY, filter->get_kernel(), filter->dim(), 1, 0, -5000, 5000);
+  gs->convolve(resultY, filter->get_kernel(), filter->dim(), 1, 0, 0, 255);
+
+  for (int j=0; j<_size; ++j)
+    {
+      float r1 = resultX[j]->r; float g1 = resultX[j]->g; float b1 = resultX[j]->b;
+      float r2 = resultY[j]->r; float g2 = resultY[j]->g; float b2 = resultY[j]->b;
+      float r3 = sqrt(r1*r1 + r2*r2); float g3 = sqrt(g1*g1 + g2*g2); float b3 = sqrt(b1*b1+b2*b2);
+      
+      clamp(r3,g3,b3);
+      gs->set(j,r3,g3,b3);
+    }
 
   result = new Pixel<float>*[_size]; // caller frees this (?)
   double eps = 1e-6;
@@ -425,6 +435,23 @@ void Image::gradientTheta(Pixel<float> ** &result)
       result[j] = new Pixel<float>(tr, tr, tr); 
     }    
 
+  gs->save("/home/mjg/Desktop/test-gs.jpg",100);
+  // first stab at non-maximal supression on edges
+  /*
+  float r = 1;
+  for (int y=0, idx = 0; y < _height; ++y)
+    {
+      for (int x=0; x<_width; ++x, ++idx)
+	{
+	  float theta = result[idx]->r; // radians
+	  float nx = x + r * cos(theta); float ny = y + r * sin(theta);
+	  if (nx >= 0 && nx < _width - 1 && ny >= 0 && ny < _height - 1)
+	    {
+	      
+	    }
+	}
+    }
+  */
   // cleanup
   if (resultX)
     {
@@ -444,6 +471,99 @@ void Image::gradientTheta(Pixel<float> ** &result)
       delete[] resultY; resultY = 0;
     }
   //if (gs) { delete gs; gs = 0; } // TODO : segfaults here
+}
+
+Pixel<float> Image::mean()
+{
+  Pixel<float> m(0,0,0);
+  float rm = 0; float gm = 0; float bm = 0;
+  for (int j=0; j<_size; ++j)
+    {
+      rm += data[j]->r; gm += data[j]->g; bm += data[j]->b;
+    }
+  m.set(rm / _size, gm / _size, bm / _size);
+  return m;
+}
+
+Pixel<float> Image::stddev(Pixel<float>& mean)
+{
+  Pixel<float> s(0,0,0);
+  float sr = 0; float sg = 0; float sb = 0;
+  for (int j=0; j<_size; ++j)
+    {
+      sr += (data[j]->r - mean.r) * (data[j]->r - mean.r);
+      sg += (data[j]->g - mean.g) * (data[j]->g - mean.g);
+      sb += (data[j]->b - mean.b) * (data[j]->b - mean.b);
+    }
+  s.set(sr/_size, sg/_size, sb/_size); s.sqrt();
+  return s;
+}
+
+bool Image::nonlocal_means(int r, int sz)
+{
+  if (r > 7) r = 7;
+  else if (r < 0) r = 3;
+  else if (r!=3 || r!=5 || r !=7) r = 3;
+
+  Pixel<float> img_mean(0,0,0); Pixel<float> sigma(0,0,0);
+  img_mean = mean(); sigma = stddev(img_mean);
+  float r2 = sigma.r * sigma.r;
+  float g2 = sigma.g * sigma.g;
+  float b2 = sigma.b * sigma.b;
+  // make a local mean image
+  Image * local_mean = new Image(*this);
+  switch(r)
+    {
+    case 3: filter = new Filter<float>(Mean3x3); break;
+    case 5: filter = new Filter<float>(Mean5x5); break;
+    case 7: filter = new Filter<float>(Mean7x7); break;
+    }
+  local_mean->convolve(filter->get_kernel(), filter->dim());
+  
+  // non-local means
+  for (int y = 0, idx=0; y < _height; ++y)
+    {
+      for (int x=0; x<_width; ++x, ++idx)
+	{
+	  Pixel<float> Bp = (*local_mean->pixel(idx));
+	  Pixel<float> sum(0,0,0);
+	  Pixel<float> val(0,0,0);
+	  
+	  // patch centered at pixel idx and size
+	  // sz is used (instead of entire image)
+	  for (int ry=std::max(0, y-sz/2); ry<std::min(y+sz/2, _height); ++ry)
+	    {
+	      for (int rx=std::max(0, x-sz/2); rx < std::min(x+sz/2, _width); ++rx)
+		{
+		  int j= ry * _width + rx;
+		  Pixel<float> Bq = (*local_mean->pixel(j));
+		  float r = exp(-(Bp.r - Bq.r)*(Bp.r - Bq.r)) / r2;
+		  float g = exp(-(Bp.g - Bq.g)*(Bp.g - Bq.g)) / g2;
+		  float b = exp(-(Bp.b - Bq.b)*(Bp.b - Bq.b)) / b2;
+		  sum.r += r; sum.g += g; sum.b += b;
+		  val.r += r * Bq.r; val.g += g * Bq.g; val.b += b * Bq.b;
+		}
+	    }
+	  sum.r = (sum.r <= 0 ? 1 : sum.r);
+	  sum.g = (sum.g <= 0 ? 1 : sum.g);
+	  sum.b = (sum.b <= 0 ? 1 : sum.b);
+	  val.r = val.r/sum.r; val.g = val.g / sum.g; val.b = val.b/sum.b;
+	  
+	  clamp(&val);
+      //printf("%f %f %f (%f,%f,%f)\n", val.r, val.g, val.b, 
+      //sum.r, sum.g, sum.b);
+	  
+	  data[idx]->set(val);
+	}  
+    }
+
+  /*
+  if (local_mean)
+    {
+      local_mean->clear();
+    }
+  */
+  return true;
 }
 
 // spatial convolution definitions
@@ -651,7 +771,6 @@ bool Image::binning(int b)
 // inplace xform inside current image bounds
 bool Image::xform(float tx, float ty, float centerx, float centery, float deg, float scale)
 {
-
   // storage for new image
   Pixel<float> ** result;
   result = new Pixel<float>*[_size];
@@ -796,7 +915,6 @@ Pixel<float> * Image::interpolate(float x, float y)
     case nearestneighbor: break;
     case bilinear: 
       {	
-
 	float nx = x - int(x); float ny = y - int(y);
 	result = new Pixel<float>(0,0,0);
 	result->set((*pixel(x,y))     * (1-nx) * (1-ny) + 

@@ -1,6 +1,7 @@
 #ifndef LIB_IMAGE_H
 #define LIB_IMAGE_H
 
+#include <cmath>
 #include <fftw3.h>
 
 #include "image_jpeg.h"
@@ -52,9 +53,14 @@ public:
   
   void set(T rd, T gn, T bu) { r = rd; g = gn; b = bu; }
   void set(const Pixel& p) { r = p.r; g = p.g; b = p.b; }
+  void sqrt() { r = std::sqrt(r); g = std::sqrt(g); b = std::sqrt(b); }
   Pixel operator*(const T& scale);
   Pixel operator+(const Pixel& other);
+  Pixel operator*(const Pixel& other);
   Pixel operator-(const Pixel& other);
+  Pixel operator+=(const Pixel& other);
+  Pixel operator/(const Pixel& other);
+  Pixel operator/=(const Pixel& other);
 };
 
 // pixel operator overrides
@@ -62,6 +68,11 @@ template<typename T>
 Pixel<T> Pixel<T>::operator*(const T& scale)
 {
   return (Pixel<T>(r*scale, g*scale, b*scale));
+}
+template<typename T>
+Pixel<T> Pixel<T>::operator*(const Pixel& other)
+{
+  return (Pixel<T>(r * other.r, g * other.g, b * other.b));
 }
 template<typename T>
 Pixel<T> Pixel<T>::operator+(const Pixel& other)
@@ -74,6 +85,23 @@ Pixel<T> Pixel<T>::operator-(const Pixel& other)
   return (Pixel<T>(r - other.r, g - other.g, b - other.b));
 }
 
+template<typename T>
+Pixel<T> Pixel<T>::operator+=(const Pixel& other)
+{
+  return (Pixel<T>(r+other.r, g + other.g, b + other.b));
+}
+
+template<typename T>
+Pixel<T> Pixel<T>::operator/(const Pixel& other)
+{
+  return (Pixel<T>(r/other.r, g/other.g, b/other.b));
+}
+
+template<typename T>
+Pixel<T> Pixel<T>::operator/=(const Pixel& other)
+{
+  return (Pixel<T>(r/other.r, g/other.g, b/other.b));
+}
 
 struct Gamma
 {
@@ -178,6 +206,13 @@ class Image
   void gradientX();
   void gradientY();
   void gradientTheta(Pixel<float> ** &result);
+
+  // basic statistical measures
+  Pixel<float> mean();
+  Pixel<float> stddev(Pixel<float>& mean);
+
+  // denoising algorithms
+  bool nonlocal_means(int r, int sz);
 
   // ffts
   bool convolve_fft();

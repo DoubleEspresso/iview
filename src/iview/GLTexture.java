@@ -87,6 +87,14 @@ public class GLTexture
 		return ok;
 	}
 	
+	public Boolean NonlocalMeans(int r, int sz)
+	{
+		Boolean ok = image.NonlocalMeans(r, sz);
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
 	public Boolean FlipV()
 	{
 		Boolean ok = image.FlipV();

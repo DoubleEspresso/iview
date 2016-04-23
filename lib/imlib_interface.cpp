@@ -107,4 +107,9 @@ extern "C"
   {
     return handle->binning(b);
   }
+  
+  bool nonlocal_means(int r, int sz, Image * handle)
+  {
+    return handle->nonlocal_means(r, sz);
+  }
 }

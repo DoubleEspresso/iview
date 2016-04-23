@@ -225,6 +225,13 @@ public class Image
 		return ok;
 	}
 	
+	public Boolean NonlocalMeans(int r, int sz)
+	{
+		Boolean ok = Libimage.instance.nonlocal_means(r, sz, image_handle);
+		updatePixelData();
+		return ok;
+	}
+	
 	public Boolean save(String fname)
 	{
 		Libimage.instance.save(fname, 100, image_handle);

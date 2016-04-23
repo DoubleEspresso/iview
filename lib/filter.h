@@ -7,6 +7,7 @@
 enum FilterType
   {
     None,
+    Mean3x3, Mean5x5, Mean7x7,
     Sharpen3x3, Sharpen5x5, Sharpen7x7,
     Sobel,
     Emboss3x3 , Emboss5x5 , Emboss7x7,
@@ -28,6 +29,9 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
     switch (t)
       {
       case None: _size = 0; break;
+      case Mean3x3: _size = 3; break;
+      case Mean5x5: _size = 5; break;
+      case Mean7x7: _size = 7; break;
       case Sharpen3x3: _size = 3; break;
       case Sharpen5x5: _size = 5; break;
       case Sharpen7x7: _size = 7; break;
@@ -67,6 +71,9 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
     switch (type)
       {
       case None : break;
+      case Mean3x3: set_mean3x3(); break;
+      case Mean5x5: set_mean5x5(); break;
+      case Mean7x7: set_mean7x7(); break;
       case Sharpen3x3: set_sharpen3x3(); break;
       case Sharpen5x5: set_sharpen5x5(); break;
       case Sharpen7x7: set_sharpen7x7(); break;
@@ -86,6 +93,24 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
   int dim(){ return _size; }
 
   /***** filter definitions *****/
+
+  void set_mean3x3()
+  {
+    if (!kernel) kernel = new T[9];
+    for (int i=0; i<9; ++i) kernel[i] = 1.0/9.0;
+  }
+
+  void set_mean5x5()
+  {
+    if (!kernel) kernel = new T[25];
+    for (int i=0; i<25; ++i) kernel[i] = 1.0/25.0;
+  }
+
+  void set_mean7x7()
+  {
+    if (!kernel) kernel = new T[49];
+    for (int i=0; i<49; ++i) kernel[i] = 1.0/49.0;
+  }
 
   /** sharpen filters **/
   void set_sharpen3x3()

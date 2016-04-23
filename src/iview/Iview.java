@@ -325,6 +325,19 @@ public class Iview
 			}
 		});
 		
+		// non-local means denoising
+		MenuItem nl_means = new MenuItem(popupMenu, SWT.NONE);
+		nl_means.setText("&Nonlocal means (denoising)");
+		nl_means.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.NonlocalMeans(7,7);
+				imgPane.refresh();
+			}
+		});
+		
 		// binning x2 in x & y
 		MenuItem binning2 = new MenuItem(popupMenu, SWT.NONE);
 		binning2.setText("&Binning x2");
