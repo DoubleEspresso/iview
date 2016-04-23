@@ -90,6 +90,7 @@ class Image
  public:
   Image(uint w, uint h);
   Image(Image& other);
+  Image(Pixel<float> ** src, uint w, uint h);
   Image();
   ~Image();
 

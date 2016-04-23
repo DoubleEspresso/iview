@@ -32,9 +32,11 @@ int main(int argc, char * argv[])
       //im->binning(5);
       //im->sharpen(3);
       //im->gauss(5, 6);
-      //Pixel<float> ** result_img;
-      //im->gradientTheta(result_img);
-      //im->sobel();
+      Pixel<float> ** result_img;
+      im->gradientTheta(result_img);
+      Image * im2 = new Image(result_img, im->width(), im->height());
+      im2->save("/home/mjg/Desktop/test-gradient.jpg",100);
+      im->sobel();
       //im->gradientY();
       //im->median(3);
       //im->median(3);

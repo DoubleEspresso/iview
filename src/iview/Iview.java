@@ -4,6 +4,12 @@ package iview;
 import java.io.File;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.dnd.DND;
+import org.eclipse.swt.dnd.DropTarget;
+import org.eclipse.swt.dnd.DropTargetAdapter;
+import org.eclipse.swt.dnd.DropTargetEvent;
+import org.eclipse.swt.dnd.FileTransfer;
+import org.eclipse.swt.dnd.Transfer;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.opengl.GLCanvas;
@@ -41,11 +47,14 @@ import com.jogamp.opengl.GLContext;
 public class Iview
 {	
 	protected static ImagePane imgPane;
+	public static DropTarget dropTarget = null;
+
 	
 	public static void main(String[] args)
 	{
 		initializeWindow();
 		attachRightClickMenu(imgPane.glcontext, imgPane.glcanvas);
+		setDropListener(imgPane.glcanvas);
 		
 		// TODO: drag & drop event
 		while (!imgPane.display.isDisposed())
@@ -63,9 +72,62 @@ public class Iview
 		return imgPane.getGL2instance();
 	}
 	
+	private static void setDropListener(final GLCanvas glcanvas)
+	{
+		System.out.println("..set drop listener");
+        // add drag/drop image support to the main glcanvas
+        dropTarget = new DropTarget(imgPane.composite, DND.DROP_DEFAULT | DND.DROP_COPY | DND.DROP_LINK | DND.DROP_MOVE);
+        dropTarget.setTransfer(new Transfer[] { FileTransfer.getInstance() });
+        
+		dropTarget.addDropListener(new DropTargetAdapter()
+		{
+			@Override
+			public void dragEnter(DropTargetEvent event) 
+			{
+				event.detail = DND.DROP_COPY;
+			}
+			@Override
+			public void drop(DropTargetEvent e)
+			{
+				System.out.println("..caught drop event for data " + e.data);
+				
+				if (e.data instanceof String[])
+				{
+					String[] fname = (String[]) e.data;					
+					if (fname[0] != null) onDropFile(fname[0]);
+				}
+				else
+				{
+					System.out.println("..drop event type not handled");
+				}
+			}
+		});
+	}
+	
+	private static void onDropFile(String fname)
+	{
+		if (fname != null)
+		{
+			imgPane.texture = new GLTexture(getGL(), fname);
+			imgPane.hasImage = imgPane.texture.Initialized();
+			if (imgPane.hasImage)
+			{
+				imgPane.texture.Gen();
+				imgPane.texture.Bind();
+				imgPane.texture.TextureImage2D();
+				imgPane.refresh();
+			}
+		}
+		else
+		{
+			System.out.println("..load file failed, basename null");
+		}
+	}
+	
 	private static void initializeWindow()
 	{
         imgPane = new ImagePane(new Display(), "iview", 640, 480);
+ 
 	}
 	
 	public static float gammaRed = 1;
@@ -479,7 +541,18 @@ class ImagePane extends GLWindow
 			pscale = ppscale;
 		}
 	}
-	public void onMouseDoubleClick(Event e) { }
+	public void onMouseDoubleClick(Event e) 
+	{ 
+		scale = 1.0f; pscale = 1.0f;
+		percentX = 1; percentY = 1;
+		imageSize.set(1f,1f);
+		imageCorner.set(0f,0f);
+		MousePos.set(0f,0f);
+		MouseDelta.set(0f, 0f);
+		Translate.set(0f, 0f);
+		ScalePos.set(0f, 0f);
+		refresh();
+	}
 	
 	public void onMouseMove(MouseEvent e)
 	{

@@ -24,6 +24,25 @@ Image::Image(uint w, uint h) :
   init(w,h,3);
 }
 
+Image::Image(Pixel<float> ** src, uint w, uint h) :
+  _height(h), _width(w), _comps(3), 
+  _size(w*h), data(0), jpeg_handle(0), filter(0)
+{
+  if (!jpeg_handle) jpeg_handle = new Image_JPEG();
+  gammas.r = 1; gammas.b = 1; gammas.g = 1;
+  data = new Pixel<float>*[_size];
+  unsigned char * jpeg_d = new unsigned char [_size * _comps];
+  for (int j=0,i=0; j<_size; ++j,i+=3)
+    { 
+      float r = src[j]->r; jpeg_d[i] = r;
+      float g = src[j]->g; jpeg_d[i+1] = g;    
+      float b = src[j]->b; jpeg_d[i+2] = b;
+      data[j] = new Pixel<float>(r,g,b);      
+    }
+  jpeg_handle->copy_data(jpeg_d, w, h, _comps);
+  delete [] jpeg_d; jpeg_d = 0;  
+}
+
 Image::Image(Image& other) :
   _height(other.height()), _width(other.width()), _comps(other.comps()),
   _size(other.size()), data(0), jpeg_handle(other.get_handle()), filter(other.img_filter())
@@ -780,10 +799,10 @@ Pixel<float> * Image::interpolate(float x, float y)
 
 	float nx = x - int(x); float ny = y - int(y);
 	result = new Pixel<float>(0,0,0);
-	result->set((*pixel(x,y)) * (1-nx) * (1-ny) + 
-		    (*pixel(x+1,y))   * nx * (1-ny) + 
+	result->set((*pixel(x,y))     * (1-nx) * (1-ny) + 
+		    (*pixel(x+1,y))   * nx     * (1-ny) + 
 		    (*pixel(x,y+1))   * (1-nx) * ny +
-		    (*pixel(x+1,y+1))     * nx * ny);            
+		    (*pixel(x+1,y+1)) * nx     * ny);            
 	clamp(result);
 	break;
       }
