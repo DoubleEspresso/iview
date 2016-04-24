@@ -177,6 +177,9 @@ class Image
   bool swap_quadrants(); // similar to fftshift in matlab
   bool resize(int w, int h, int c = 3);
   bool on_image(int i);
+
+  // whole image math operations
+  bool sub(Image * src);
   
   // size/geometry manipulations
   bool crop();
@@ -196,6 +199,7 @@ class Image
   bool convert_gs();
   template<Interpolation i>
   Pixel<float> * interpolate(float x, float y);
+  bool adjust_contrast(float C);
   
   // filter operations
   void sharpen(int ksize);
@@ -215,6 +219,9 @@ class Image
   bool mean_filter(int r);
   bool nonlocal_means(int r, int sz);
 
+  // unsharp masking (used to sharpen image)
+  bool unsharp_mask(int r, float s, int C, int threshold = 25);    
+  
   // ffts
   bool convolve_fft();
   void save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h);

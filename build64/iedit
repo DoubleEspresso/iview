@@ -1,0 +1,2 @@
+#!/bin/bash
+java -jar -d64 -Xms4G -Xmx4G ~/java-workspace/iview/build64/iview/iview.jar $1 &

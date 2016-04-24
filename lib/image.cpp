@@ -580,6 +580,56 @@ bool Image::nonlocal_means(int r, int sz)
   return true;
 }
 
+bool Image::unsharp_mask(int r, float s, int C, int t)
+{
+  // build gaussian blur image
+  if (t <= 0) t = 25;
+  
+  Image * blurred = new Image(*this);
+  Image * umask = new Image(*this);
+  Image * contrast = new Image(*this);
+ 
+  filter = new Filter<float>();
+  filter->set_gauss(r, s);
+  blurred->convolve(filter->get_kernel(), filter->dim());
+  umask->sub(blurred);
+  contrast->adjust_contrast(C); // higher constrast image
+
+  Image * gscale = new Image(*blurred);
+  gscale->convert_gs();
+  float max = -1; float min = 256;
+  for (int j=0; j<_size; ++j)
+    {
+      if (gscale->pixel(j)->r > max) max = gscale->pixel(j)->r;
+      if (gscale->pixel(j)->r < min) min = gscale->pixel(j)->r;
+    }
+  float range = max - min;
+  if (range <= 0) range = 1;
+  
+  for(int j=0; j<_size; ++j)
+    {
+      Pixel<float> src = *data[j];
+      Pixel<float> hc = (*contrast->pixel(j));
+      Pixel<float> cd(hc.r-src.r, hc.g-src.g, hc.b-src.b);
+      float percent = gscale->pixel(j)->r / range;
+      float delta = (0.299 * cd.r + 0.587 * cd.g + 0.114 * cd.b + 0.5) * percent; // gray-value
+
+      if (abs(delta) >= t)
+	{
+	  src.r += delta; src.g += delta; src.b += delta;
+	  clamp(&src);
+	  data[j]->set(src);
+	}
+    }
+
+  // cleanup
+  if (filter) { delete filter; filter = 0; }  
+  if (blurred) blurred->clear();
+  if (umask) umask->clear();
+  if (contrast) contrast->clear();
+  if (gscale) gscale->clear();
+}
+
 // spatial convolution definitions
 bool Image::convolve(Pixel<float> ** &result, float* kernel, int kdim,
 		     float scale, float bias,
@@ -868,6 +918,21 @@ bool Image::fliph()
   return true;
 }
 
+bool Image::sub(Image * src)
+{
+  if (src->size() != _size) return false;
+  
+  for (int j = 0; j<_size; ++j)
+    {
+      float r = data[j]->r - src->pixel(j)->r;
+      float g = data[j]->g - src->pixel(j)->g;
+      float b = data[j]->b - src->pixel(j)->b;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
+    }
+  return true;
+}
+
 bool Image::flipv()
 {
   if (!data || _width <= 1 || _height <= 1) return false;  
@@ -913,7 +978,7 @@ bool Image::convert_gs()
   for (int j=0; j<_size; ++j)
     {
       float r = data[j]->r; float g = data[j]->g; float b = data[j]->b;
-      float nc = sqrt(r*r + g*g + b*b);
+      float nc = (0.299 * r + 0.587 * g + 0.114 * b + 0.5);//sqrt(r*r + g*g + b*b);
       clamp(nc, nc, nc);
       data[j]->set(nc, nc, nc);
     }
@@ -941,6 +1006,21 @@ Pixel<float> * Image::interpolate(float x, float y)
     case bicubic: break;
     }
   return result;
+}
+
+bool Image::adjust_contrast(float C)
+{
+  // note: assumes 8bit images!!
+  float F = 259.0 * (C + 255.0) / (255.0 * (259.0 - C));
+  for (int j=0; j<_size; ++j)
+    {
+      float nr = data[j]->r * F;
+      float ng = data[j]->g * F;
+      float nb = data[j]->b * F;
+      clamp(nr, ng, nb);
+      data[j]->set(nr, ng, nb);
+    }
+				   
 }
 
 /* utilities section */

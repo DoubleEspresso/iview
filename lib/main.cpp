@@ -27,8 +27,8 @@ int main(int argc, char * argv[])
 	     jptr->comps(),
 	     jptr->size());
  
-
-      im->nonlocal_means(7, 5);
+      im->unsharp_mask(7, 4, 25, 10);
+      //im->nonlocal_means(7, 5);
       //im->xform(0,0,jptr->width()/2, jptr->height()/2, 145.0, 100.0);
       //im->convolve_fft();
       //im->binning(5);

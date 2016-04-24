@@ -23,6 +23,8 @@ class Filter
   int _size;
   FilterType type;
 public:
+
+Filter() : kernel (0), _size(0), type(None) {}
   
 Filter(FilterType t) : kernel(0), _size(0), type(t)
   {
@@ -209,6 +211,29 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
 	  }
       }
     for (int j=0; j<49; ++j )
+      {
+	kernel[j] /= sum;
+      }
+  }
+
+  void set_gauss(int r, float s) 
+  {
+    if (kernel) { delete [] kernel; kernel = 0; }
+    _size = r;
+    kernel = new T[r*r];
+    float sum = 0;
+    for (int j=0, idx =0; j < r; ++j)
+      {
+	for (int i=0; i < r; ++i, ++idx)
+	  {
+	    int row = -r/2 + j;
+	    int col = -r/2 + i;
+	    float v = gauss(col, row, s);
+	    kernel[j * 7 + i] = v;
+	    sum += v;
+	  }
+      }
+    for (int j=0; j < r*r; ++j )
       {
 	kernel[j] /= sum;
       }

@@ -27,10 +27,7 @@ import com.jogamp.opengl.GLContext;
 
 
 // TODO: 
-// 2. investigate memory leaks when loading images (each load creates new JPEG() .. never free pointer buffer to image data in cpp??)
 // 2. update title of main window to loaded image location + image info display somewhere
-// 2. double-click to re-zoom image
-// 3. proper aspect ratios for loaded images + zoom support on mousewheel
 // 4. add basic toolbar menu with file filter imops help etc.
 // 6. settings file for initial screen resolution + start where left off --> need a .pstate file for applied filters, color tables etc.???
 // --- long term TODO: ---
