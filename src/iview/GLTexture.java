@@ -103,6 +103,14 @@ public class GLTexture
 		return ok;
 	}
 	
+	public Boolean Binning(int b)
+	{
+		Boolean ok = image.Binning(b);
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
 	public Boolean Grayscale()
 	{
 		Boolean ok = image.grayScale();

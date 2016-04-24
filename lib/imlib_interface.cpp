@@ -92,4 +92,19 @@ extern "C"
   {
     return handle->threshold(val);
   }
+
+  bool fliph(Image * handle)
+  {
+    return handle->fliph();
+  }
+
+  bool flipv(Image * handle)
+  {
+    return handle->flipv();
+  }
+
+  bool binning(int b, Image * handle)
+  {
+    return handle->binning(b);
+  }
 }

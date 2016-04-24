@@ -50,8 +50,9 @@ public class Image
 	{
 		try 
 		{
-			
-			return false; 
+			Boolean ok = Libimage.instance.flipv(image_handle);
+			updatePixelData();
+			return ok; 
 		} 
 		catch (Exception any) {
 			System.out.println("..exception calling rotate " + any.getMessage());
@@ -63,7 +64,9 @@ public class Image
 	{
 		try 
 		{
-			return false;
+			Boolean ok = Libimage.instance.fliph(image_handle);
+			updatePixelData();
+			return ok; 
 		} 
 		catch (Exception any) {
 			System.out.println("..exception calling rotate " + any.getMessage());
@@ -71,6 +74,19 @@ public class Image
 		}
 	}
 
+	public Boolean Binning(int b) 
+	{
+		try 
+		{
+			Boolean ok = Libimage.instance.binning(b, image_handle);
+			updatePixelData();
+			return ok; 
+		} 
+		catch (Exception any) {
+			System.out.println("..exception calling rotate " + any.getMessage());
+			return false;
+		}
+	}
 	
 	public Boolean Load()
 	{

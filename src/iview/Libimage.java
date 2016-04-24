@@ -25,4 +25,7 @@ public interface Libimage extends Library
 	public Boolean gamma_correct(float gr, float gg, float gb, float max, float scale, float bias, Pointer handle);
 	public Boolean gray_scale(Pointer handle);
 	public Boolean threshold(float val, Pointer handle);
+	public Boolean fliph(Pointer handle);
+	public Boolean flipv(Pointer handle);
+	public Boolean binning(int b, Pointer handle);
 }

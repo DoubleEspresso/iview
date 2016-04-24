@@ -325,6 +325,19 @@ public class Iview
 			}
 		});
 		
+		// binning x2 in x & y
+		MenuItem binning2 = new MenuItem(popupMenu, SWT.NONE);
+		binning2.setText("&Binning x2");
+		binning2.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.Binning(2);
+				imgPane.refresh();
+			}
+		});
+		
 		// quit application
 		MenuItem exit = new MenuItem(popupMenu, SWT.NONE);
 		exit.setText("&Exit");
@@ -541,8 +554,8 @@ class ImagePane extends GLWindow
 			pscale = ppscale;
 		}
 	}
-	public void onMouseDoubleClick(Event e) 
-	{ 
+	public void reset()
+	{
 		scale = 1.0f; pscale = 1.0f;
 		percentX = 1; percentY = 1;
 		imageSize.set(1f,1f);
@@ -550,7 +563,11 @@ class ImagePane extends GLWindow
 		MousePos.set(0f,0f);
 		MouseDelta.set(0f, 0f);
 		Translate.set(0f, 0f);
-		ScalePos.set(0f, 0f);
+		ScalePos.set(0f, 0f);	
+	}
+	public void onMouseDoubleClick(Event e) 
+	{ 
+		reset();
 		refresh();
 	}
 	
