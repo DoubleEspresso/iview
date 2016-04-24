@@ -78,16 +78,7 @@ public abstract class GLWindow
         	addDoubleClickListener();
         	addPaintListener();
         	addKeyListener();
-        	
-
-    		shell.addListener(SWT.Close, new Listener() 
-            { 
-               @Override 
-               public void handleEvent(Event event) 
-               {  
-                  shell.dispose(); 
-               } 
-            });
+        	addCloseListener(shell);
         }
         
         is_initialized = true;
@@ -126,6 +117,19 @@ public abstract class GLWindow
 				resizeWindow();
 			}
 		});
+	}
+	
+	private void addCloseListener(final Shell shell)
+	{
+		shell.addListener(SWT.Close, new Listener() 
+        { 
+           @Override 
+           public void handleEvent(Event event) 
+           {
+              shell.dispose();
+        	  onClose();
+           } 
+        });
 	}
 
 	private void addMouseWheelListener()
@@ -307,6 +311,7 @@ public abstract class GLWindow
 	public abstract void onMouseDown(Event e);
 	public abstract void onMouseUp(Event e);
 	public abstract void onMouseDoubleClick(Event e);
+	public abstract void onClose();
 	
 	public void onKeyPressed(KeyEvent e) {}
 	public void onKeyReleased(KeyEvent e) {}

@@ -212,6 +212,7 @@ class Image
   Pixel<float> stddev(Pixel<float>& mean);
 
   // denoising algorithms
+  bool mean_filter(int r);
   bool nonlocal_means(int r, int sz);
 
   // ffts

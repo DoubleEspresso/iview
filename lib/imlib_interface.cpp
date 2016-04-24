@@ -112,4 +112,10 @@ extern "C"
   {
     return handle->nonlocal_means(r, sz);
   }
+
+  bool mean_filter(int r, Image * handle)
+  {
+    return handle->mean_filter(r);
+  }
+    
 }

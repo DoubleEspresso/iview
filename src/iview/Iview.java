@@ -56,6 +56,34 @@ public class Iview
 		attachRightClickMenu(imgPane.glcontext, imgPane.glcanvas);
 		setDropListener(imgPane.glcanvas);
 		
+		if (args.length > 0)
+		{
+			// parse image file (could be passed as argument on double-click exe)
+			try
+			{
+				String fname = args[0];
+				if (fname != null)
+				{
+					imgPane.texture = new GLTexture(getGL(), fname);
+					imgPane.hasImage = imgPane.texture.Initialized();
+					if (imgPane.hasImage)
+					{
+						imgPane.texture.Gen();
+						imgPane.texture.Bind();
+						imgPane.texture.TextureImage2D();
+						imgPane.refresh();
+					}
+				}
+				else
+				{
+					System.out.println("..load file failed (unrecognized format)");
+				}
+			}
+			catch (Exception e)
+			{
+			}						
+		}
+		
 		// TODO: drag & drop event
 		while (!imgPane.display.isDisposed())
 		{
@@ -202,9 +230,9 @@ public class Iview
 		          MessageBox mb = new MessageBox(dialog.getParent(), SWT.ICON_WARNING | SWT.YES | SWT.NO);
 		          mb.setMessage(filename + " exists. Do you want to replace it?");
 		          if (mb.open() == SWT.NO) return;	
-		          imgPane.texture.image.save(filename);
-		          
+		          imgPane.texture.image.save(filename);		          
 		        }
+		        else imgPane.texture.image.save(filename);
 			}
 		});
 		// histogram
@@ -312,9 +340,22 @@ public class Iview
 			}
 		});
 		
+		// median filter
+		MenuItem mean_filter = new MenuItem(popupMenu, SWT.NONE);
+		mean_filter.setText("&Mean");
+		mean_filter.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.MeanFilter(7);
+				imgPane.refresh();
+			}
+		});
+		
 		// gaussian smoothing filter
 		MenuItem gaussian_smooth = new MenuItem(popupMenu, SWT.NONE);
-		gaussian_smooth.setText("&Gaussian Blur");
+		gaussian_smooth.setText("&Gaussian blur");
 		gaussian_smooth.addListener(SWT.Selection, new Listener()
 		{
 			public void handleEvent(Event e)
@@ -418,6 +459,11 @@ class ImagePane extends GLWindow
 //		texture.gammaCorrection(gr, gg, gb, max, scale, bias);
 //		refresh();
 //	}
+	public void onClose()
+	{
+        glcanvas.dispose();
+        display.dispose();
+	}
 	
 	public void paint(GL2 gl2, int width, int height)
 	{
@@ -631,6 +677,12 @@ class GLHistogram extends GLWindow
     		if (hBins[j] > max) max = hBins[j];
     		if (hBins[j] < min) min = hBins[j];
     	}
+	}
+	
+	public void onClose()
+	{
+        //glcanvas.dispose();
+        //display.dispose();
 	}
 	
 	public void onMouseScroll(MouseEvent e) {}

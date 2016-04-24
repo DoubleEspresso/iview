@@ -73,13 +73,12 @@ Image::~Image()
 	  delete data[j]; data[j] = 0;
 	}
       delete[] data; data = 0; 
-    }  
+    }
+  _size = _width = _height = _comps = 0;
 }
 
 bool Image::clear()
 {
-  _size = _width = _height = _comps = 0;
-  if (jpeg_handle) { delete jpeg_handle; jpeg_handle = 0; }
   if (data)
     {
       for (int j=0; j<_size; ++j)
@@ -88,6 +87,7 @@ bool Image::clear()
 	}
       delete[] data; data = 0;
     }
+  //if (jpeg_handle) { delete jpeg_handle; jpeg_handle = 0; }
   return true;
 }
 
@@ -470,7 +470,7 @@ void Image::gradientTheta(Pixel<float> ** &result)
 	}
       delete[] resultY; resultY = 0;
     }
-  //if (gs) { delete gs; gs = 0; } // TODO : segfaults here
+  if (gs) gs->clear();
 }
 
 Pixel<float> Image::mean()
@@ -497,6 +497,22 @@ Pixel<float> Image::stddev(Pixel<float>& mean)
     }
   s.set(sr/_size, sg/_size, sb/_size); s.sqrt();
   return s;
+}
+
+bool Image::mean_filter(int r)
+{
+  if (r > 7) r = 7;
+  else if (r < 0) r = 3;
+  else if (r!=3 || r!=5 || r !=7) r = 3;
+  
+  switch(r)
+    {
+    case 3: filter = new Filter<float>(Mean3x3); break;
+    case 5: filter = new Filter<float>(Mean5x5); break;
+    case 7: filter = new Filter<float>(Mean7x7); break;
+    }
+  convolve(filter->get_kernel(), filter->dim());
+  if (filter) { delete filter; filter = 0; }
 }
 
 bool Image::nonlocal_means(int r, int sz)
@@ -557,12 +573,10 @@ bool Image::nonlocal_means(int r, int sz)
 	}  
     }
 
-  /*
-  if (local_mean)
-    {
-      local_mean->clear();
-    }
-  */
+  // cleanup
+  if (filter) { delete filter; filter = 0; }  
+  if (local_mean) local_mean->clear();
+  
   return true;
 }
 

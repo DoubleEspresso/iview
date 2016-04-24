@@ -4,7 +4,7 @@ CXX = g++
 RM = rm -f  # rm command
 LFLAGS = -L../../external/jpeg/lib64 -ljpeg -L../../external/math/bin64 -lfftw3 -L../../external/tif/lib64 -ltiff
 INCS +=-I../../external/jpeg/src -I../../external/math/fftw/api -I../../external/tif/libtiff
-CFLAGS = -Wall -fPIC -O3 -g -m64 $(INCS)
+CFLAGS = -Wall -fPIC -O3 -m64 $(INCS) # -g for debug
 
 SRCS = image.cpp image_jpeg.cpp stringutils.cpp jpeg_interface.cpp imlib_interface.cpp image_tiff.cpp
 OBJS = $(SRCS:.cpp=.o)

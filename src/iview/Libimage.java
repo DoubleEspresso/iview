@@ -29,4 +29,5 @@ public interface Libimage extends Library
 	public Boolean flipv(Pointer handle);
 	public Boolean binning(int b, Pointer handle);
 	public Boolean nonlocal_means(int r, int sz, Pointer handle);
+	public Boolean mean_filter(int r, Pointer handle);
 }

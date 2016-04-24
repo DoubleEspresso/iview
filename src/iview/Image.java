@@ -88,6 +88,20 @@ public class Image
 		}
 	}
 	
+	public Boolean MeanFilter(int r) 
+	{
+		try 
+		{
+			Boolean ok = Libimage.instance.mean_filter(r, image_handle);
+			updatePixelData();
+			return ok; 
+		} 
+		catch (Exception any) {
+			System.out.println("..exception calling mean filter " + any.getMessage());
+			return false;
+		}
+	}
+	
 	public Boolean Load()
 	{
 		if (!Initialized())

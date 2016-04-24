@@ -110,7 +110,11 @@ public class GammaCorrection extends GLWindow
     	gl2.glEnd();
 
 	}
-	
+	public void onClose()
+	{
+        //glcanvas.dispose();
+        //display.dispose();
+	}
 	public void onMouseDown(Event e) 
 	{		
 		mouseDown = true;
