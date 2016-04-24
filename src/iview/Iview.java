@@ -242,7 +242,7 @@ public class Iview
 				if (!imgPane.hasImage) return;
 
 				Histogram h = new Histogram(imgPane.texture.image, 0);
-				new GLHistogram(imgPane.display, "histogram", 450, 180, h.Bins());
+				new HistogramWindow(imgPane.display, "histogram", 450, 180, h.Bins());
 			}
 		});
 		
@@ -656,108 +656,3 @@ class ImagePane extends GLWindow
 	}		
 }
 
-
-class GLHistogram extends GLWindow
-{
-	int[] hBins = null;
-	int max = 0;
-	int min = 255;
-	public GLHistogram(Display d, String s, int w, int h) { super(d,s,w,h); }
-	public GLHistogram(Display d, String s, int w, int h, int[] histoBins) { super(d,s,w,h); hBins = histoBins; setMax();}
-	public final Vec2 MousePos = new Vec2(0f, 0f);
-	public final Vec2 MouseDelta = new Vec2(0f,0f);
-	
-	void setMax()
-	{
-    	for (int j=0; j<hBins.length; ++j)
-    	{
-    		if (hBins[j] > max) max = hBins[j];
-    		if (hBins[j] < min) min = hBins[j];
-    	}
-	}
-	
-	public void onClose()
-	{
-        //glcanvas.dispose();
-        //display.dispose();
-	}
-	
-	public void onMouseScroll(MouseEvent e) {}
-	
-	public void paint(GL2 gl2, int w, int h)
-	{
-        gl2.glMatrixMode( GL2.GL_PROJECTION );
-        //gl2.glClearColor(0f, 0f, 0f, 0f);
-        //gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT); // helps to stop flickering on resize        
-        gl2.glLoadIdentity();               
-        gl2.glOrtho(0, w, h, 0, 0, 1);
-
-        gl2.glMatrixMode(GL2.GL_MODELVIEW);
-        gl2.glViewport( 0, 0, w, h);
-
-		gl2.glClearColor(0f, 0f, 0f, 0f);
-		gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT);
-		gl2.glLoadIdentity();		
-		
-		if (hBins != null)
-		{
-			gl2.glEnable(GL2.GL_LINE_SMOOTH);
-			gl2.glHint(GL2.GL_LINE_SMOOTH_HINT,  GL2.GL_NICEST);
-			//gl2.glClearColor(1f, 1f, 1f, 1f);
-
-
-			// background gradient
-			gl2.glBegin(GL2.GL_QUADS);
-			gl2.glColor3f( .85f, 0.8f, 0.8f );
-			gl2.glVertex3f( 0f, 0f, 0f );
-			gl2.glVertex3f( 0f, h, 0f );
-			gl2.glColor3f( 0.15f, 0.1f, 0.1f );
-			gl2.glVertex3f( w, h, 0f );
-			gl2.glVertex3f( w, 0, 0f );
-			gl2.glEnd(); 			
-			
-			// draw histo bins
-			float dX = (float) w / (float) hBins.length;
-			if (dX >= (float)400 / (float)hBins.length) dX = (float) 400 / (float) hBins.length;
-
-			
-			gl2.glBegin(GL2.GL_LINES);
-
-
-        	for (int j=0; j<hBins.length; ++j)
-        	{
-        		float yVal = (float) (h * hBins[j]) / (float) max;
-        		
-        		gl2.glColor3f((float) j / (float) hBins.length, 0f, 0f);
-        		
-        		gl2.glVertex2d((float)((j)*dX), h-yVal);
-        	} 
-        	
-			double lineIdx = (float) ((float)hBins.length / (float) width  * MousePos.x);		
-			gl2.glColor3f(0f, 1f, 0f);
-        	for (int j=(int)lineIdx - 8; j<(int)lineIdx + 8; ++j)
-        	{
-        		if (j < 0 || j > hBins.length-1) continue; 
-        		
-        		float yVal = (float) (h * hBins[j]) / (float) max;
-        		gl2.glVertex2d((float)((j)*dX), h) ;
-        		gl2.glVertex2d((float)((j+1)*dX), h-yVal);        	
-        	}
-        	gl2.glEnd();
-  		}
-	}
-	
-	public void onMouseMove(MouseEvent e)
-	{
-		MouseDelta.x += (e.x - MousePos.x);
-		MouseDelta.y += (e.y - MousePos.y);
-		MousePos.x = e.x;
-		MousePos.y = e.y;
-		
-		refresh();
-		//System.out.println("mouse("+MousePos.x + "," + MousePos.y + ")");
-	}
-	public void onMouseDown(Event e) { }
-	public void onMouseUp(Event e) { }
-	public void onMouseDoubleClick(Event e) { }
-}
