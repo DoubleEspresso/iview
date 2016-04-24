@@ -30,4 +30,6 @@ public interface Libimage extends Library
 	public Boolean binning(int b, Pointer handle);
 	public Boolean nonlocal_means(int r, int sz, Pointer handle);
 	public Boolean mean_filter(int r, Pointer handle);
+	public Boolean usharp_mask(int r, float s, int C, int t, Pointer handle);
+	public Boolean adjust_contrast(int C, Pointer handle);
 }

@@ -117,5 +117,14 @@ extern "C"
   {
     return handle->mean_filter(r);
   }
-    
+
+  bool usharp_mask(int r, float s, int C, int t, Image * handle)
+  {
+    return handle->unsharp_mask(r, s, C, t);
+  }
+  
+  bool adjust_contrast(int C, Image * handle)
+  {
+    return handle->adjust_contrast(C);
+  }
 }

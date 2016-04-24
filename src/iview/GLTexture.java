@@ -95,6 +95,22 @@ public class GLTexture
 		return ok;
 	}
 	
+	public Boolean USharpMask(int r, float s, int C, int t)
+	{
+		Boolean ok = image.USharpMask(r, s, C, t);
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
+	public Boolean AdjustContrast(int C)
+	{
+		Boolean ok = image.AdjustContrast(C);
+		Bind();
+		TextureImage2D();
+		return ok;
+	}
+	
 	public Boolean FlipV()
 	{
 		Boolean ok = image.FlipV();

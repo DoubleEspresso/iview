@@ -272,6 +272,32 @@ public class Iview
 			}
 		});
 		
+		// higher contrast adjustment 
+		MenuItem higher_contrast = new MenuItem(popupMenu, SWT.NONE);
+		higher_contrast.setText("&Higher Contrast");
+		higher_contrast.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.AdjustContrast(25);
+				imgPane.refresh();							
+			}
+		});
+		
+		// lower contrast adjustment 
+		MenuItem lower_contrast = new MenuItem(popupMenu, SWT.NONE);
+		lower_contrast.setText("&Lower Contrast");
+		lower_contrast.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.AdjustContrast(-25);
+				imgPane.refresh();							
+			}
+		});
+		
 		// threshold correction
 		MenuItem threshold = new MenuItem(popupMenu, SWT.NONE);
 		threshold.setText("&Threshold");
@@ -337,7 +363,7 @@ public class Iview
 			}
 		});
 		
-		// median filter
+		// mean filter
 		MenuItem mean_filter = new MenuItem(popupMenu, SWT.NONE);
 		mean_filter.setText("&Mean");
 		mean_filter.addListener(SWT.Selection, new Listener()
@@ -372,6 +398,19 @@ public class Iview
 			{
 				if (!imgPane.hasImage) return;
 				imgPane.texture.NonlocalMeans(7,7);
+				imgPane.refresh();
+			}
+		});
+		
+		// unsharp masking (sharpening)
+		MenuItem usharp = new MenuItem(popupMenu, SWT.NONE);
+		usharp.setText("&Unsharp-masking (sharpen)");
+		usharp.addListener(SWT.Selection, new Listener()
+		{
+			public void handleEvent(Event e)
+			{
+				if (!imgPane.hasImage) return;
+				imgPane.texture.USharpMask(7,4,128,1);
 				imgPane.refresh();
 			}
 		});

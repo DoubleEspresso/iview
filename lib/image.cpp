@@ -595,7 +595,7 @@ bool Image::unsharp_mask(int r, float s, int C, int t)
   umask->sub(blurred);
   contrast->adjust_contrast(C); // higher constrast image
 
-  Image * gscale = new Image(*blurred);
+  Image * gscale = new Image(*umask);
   gscale->convert_gs();
   float max = -1; float min = 256;
   for (int j=0; j<_size; ++j)
@@ -614,6 +614,7 @@ bool Image::unsharp_mask(int r, float s, int C, int t)
       float percent = gscale->pixel(j)->r / range;
       float delta = (0.299 * cd.r + 0.587 * cd.g + 0.114 * cd.b + 0.5) * percent; // gray-value
 
+      //printf("%f\n", delta);
       if (abs(delta) >= t)
 	{
 	  src.r += delta; src.g += delta; src.b += delta;

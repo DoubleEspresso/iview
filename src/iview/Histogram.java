@@ -32,7 +32,7 @@ public class Histogram
 		
 		bins = new int[nBins];
 		
-		System.out.println("..call setBounds()");
+		//System.out.println("..call setBounds()");
 		
 		// run setBounds async
 		Thread t = new Thread( new Runnable()
@@ -40,13 +40,12 @@ public class Histogram
 			public void run()
 			{
 				setBounds();
-				System.out.println("..setBounds() finished");
+				//System.out.println("..setBounds() finished");
 				updateBins();
-				System.out.println("..updateBins() finished");
+				//System.out.println("..updateBins() finished");
 			}
 		});
-		t.run();
-		
+		t.run();		
 	}
 	
 	Boolean setOffset(int color, int w)

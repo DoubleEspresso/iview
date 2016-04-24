@@ -225,6 +225,13 @@ public class Image
 		return ok;
 	}
 	 
+	public Boolean USharpMask(int r, float s, int C, int t)
+	{
+		Boolean ok = Libimage.instance.usharp_mask(r, s, C, t, image_handle);
+		updatePixelData();
+		return ok;
+	}
+	
 	public Boolean grayScale()
 	{
 		Boolean ok = Libimage.instance.gray_scale(image_handle);
@@ -242,6 +249,13 @@ public class Image
 	public Boolean NonlocalMeans(int r, int sz)
 	{
 		Boolean ok = Libimage.instance.nonlocal_means(r, sz, image_handle);
+		updatePixelData();
+		return ok;
+	}
+	
+	public Boolean AdjustContrast(int C)
+	{
+		Boolean ok = Libimage.instance.adjust_contrast(C, image_handle);
 		updatePixelData();
 		return ok;
 	}

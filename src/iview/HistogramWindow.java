@@ -9,7 +9,6 @@ import com.jogamp.opengl.GL2;
 
 public class HistogramWindow extends GLWindow
 {
-
 	int[] hBins = null;
 	int max = 0;
 	int min = 255;
@@ -104,7 +103,8 @@ public class HistogramWindow extends GLWindow
 	}
 
 	@Override
-	public void onMouseScroll(MouseEvent e) {
+	public void onMouseScroll(MouseEvent e) 
+	{
 		// TODO Auto-generated method stub
 		
 	}
