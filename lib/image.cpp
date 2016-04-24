@@ -1151,8 +1151,6 @@ bool Image::swap_cols(double * d, int w, int h)
   return true;
 }
 
-
-
 void Image::swap(int i1, int i2)
 {
   Pixel<float> t1 = *data[i1]; data[i1]->set(*data[i2]); data[i2]->set(t1); 
@@ -1194,40 +1192,17 @@ bool Image::swap_cols()
   return true;
 }
 
-bool Image::convolve_fft()
+bool Image::fft(fftw_complex* R, fftw_complex* G, fftw_complex* B)
 {
-  fftw_plan rplan, gplan, bplan, irplan, igplan, ibplan, fplan; 
-  fftw_complex *R, *G, *B, *C, *IR, *IG, *IB; // storage for the fourier coefficients
-  
+  fftw_plan rplan, gplan, bplan;
+
   // note: size of output for fourier coefficients in d-dimensions is
   // n1*n2*...*(nd/2+1).  Stored in row-major format.
-  int maxd = (_width > _height ? _width : _height);
-  maxd = pow2(maxd);
   int nb = (_width/2+1) * (_height); 
-  int zpad = _size;//2maxd * maxd; //_size + _size - 1;
-  double scale = 1.0/double(_size); // normalization factor
-  
-  double * in_r = new double[zpad]; std::memset(in_r, 0, zpad * sizeof(double)); 
-  double * in_g = new double[zpad]; std::memset(in_g, 0, zpad * sizeof(double)); 
-  double * in_b = new double[zpad]; std::memset(in_b, 0, zpad * sizeof(double)); 
 
-  double * out_r = new double[zpad]; std::memset(out_r, 0, zpad * sizeof(double)); 
-  double * out_g = new double[zpad]; std::memset(out_g, 0, zpad * sizeof(double)); 
-  double * out_b = new double[zpad]; std::memset(out_b, 0, zpad * sizeof(double)); 
-
-  double * f = new double[zpad]; // filter image
-  
-  zpad = nb;
-  // allocate coefficients for forward fourier transformation
-  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-  C = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-
-  // allocate coefficients for backward fourier transformation
-  IR = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-  IG = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
-  IB = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * zpad);
+  double * in_r = new double[_size]; std::memset(in_r, 0, _size * sizeof(double)); 
+  double * in_g = new double[_size]; std::memset(in_g, 0, _size * sizeof(double)); 
+  double * in_b = new double[_size]; std::memset(in_b, 0, _size * sizeof(double)); 
 
   // copy input data
   for (int j=0; j<_size; ++j) 
@@ -1237,137 +1212,133 @@ bool Image::convolve_fft()
   rplan = fftw_plan_dft_r2c_2d(_height, _width, in_r, R, FFTW_ESTIMATE);
   gplan = fftw_plan_dft_r2c_2d(_height, _width, in_g, G, FFTW_ESTIMATE);
   bplan = fftw_plan_dft_r2c_2d(_height, _width, in_b, B, FFTW_ESTIMATE);
-
+  
   fftw_execute(rplan);
   fftw_execute(gplan);
   fftw_execute(bplan);
-  
-  /* filtering dbg */
-  double s = 1;
-  double r0 = 16;
-  double n = 4;
-  double range = 10;
-  double norm = 1;
-  double freq = 1.25;//2.0/_width; 
-  double exps = 1/(2*s*s);
-  double nrm = 1.0 / (sqrt(2*M_PI)*s);
-  for (int y=0, idx=0; y<_height; ++y)
-    {
-      for (int x=0; x<_width; ++x, ++idx)
-	{	  
-	  double xn = 2.0*range * double( x - _width/2.0 ) / double(_width);
-	  double yn = 2.0*range * double( y - _height/2.0 ) / double(_height);
-	  //f[idx] = sin( 2.0 * M_PI * freq * x);
-	  double r2 = sqrt(xn * xn + yn * yn);
-	  //if (r2 == 0) f[idx] = 1.0;
-	  //else f[idx] = sin(freq * M_PI * sqrt(r2)) / (freq * M_PI * sqrt(r2));
-	  //f[idx] = 1-exp(-r2 *exps );
-	  //f[idx] = 1.0 / (1.0 + pow( (sqrt(2) - 1.0) * (r2 / r0), 2 * n)); // low pass butterworth filter
-	  f[idx] = 1.0 / (1.0 + pow( (sqrt(2) - 1.0) * (r0 / r2), 2 * n)); // high pass butterworth filter
-	  norm += f[idx];
-	}
-    }
 
-  Image * ifilter1 = new Image(_width, _height);
-  for (int j=0; j<(_width)*_height; ++j)
-    {      
-      ifilter1->set(j,255*(float)f[j]);
-    }
-  ifilter1->convert_gs();
-  ifilter1->save("/home/mjg/Desktop/dbg-frequency-filter.jpg",100);
-  delete ifilter1; ifilter1 = 0;
-
-  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum-before-filter.jpg", R, G, B, _width, _height);
-  
-  //for (int j=0; j<_size; ++j) f[j] *= 1/norm;
-  double * ff = build_fft_filter(f, _width, _height);  
-  fourier_convolve(R, G, B, ff, _width/2+1, _height);
-
-
-  //fplan = fftw_plan_dft_r2c_2d(_height, _width, f, C, FFTW_ESTIMATE);
-  //fftw_execute(fplan);
-  
-  /* debug save image filter */  
-  Image * ifilter = new Image(_width/2+1, _height);
-  for (int j=0; j<(_width/2+1)*_height; ++j)
-    {      
-      ifilter->set(j,255*(float)ff[j]);
-    }
-  ifilter->convert_gs();
-  ifilter->save("/home/mjg/Desktop/dbg-frequency-after-filter.jpg",100);
-  delete ifilter; ifilter = 0;
-
-  /*
-  Image * fft2 = new Image(_width, _height);
-  for(int y=0; y<_height; ++y)
-    {
-      for (int x =0; x <_width/2; ++x)
-	{
-	  int j1 = y * _width + x;
-	  int j2 = y * _width + (_width-1)-x;
-	  int j3 = y * (_width/2+1) + (_width/2 - x);
-	  
-	  fft2->set(j1,*fft_image->pixel(j3));
-	  fft2->set(j2,*fft_image->pixel(j3));
-	}
-    }
-  */
-  /* debug mag/phase images */
-  save_mag_image("/home/mjg/Desktop/dbg-fft-spectrum-after-filter.jpg", R, G, B, _width, _height);
-
-  /* fourier convolution */
-  /*
-  for (int j=0; j<zpad; ++j)     
-    {
-      float rre = R[j][0] * C[j][0] - R[j][1] * C[j][1];
-      float rim = R[j][1] * C[j][0] + R[j][0] * C[j][1];
-      R[j][0] = rre; R[j][1] = rim;
-      
-      float gre = G[j][0] * C[j][0] - G[j][1] * C[j][1];
-      float gim = G[j][1] * C[j][0] + G[j][0] * C[j][1];
-      G[j][0] = gre; G[j][1] = gim;
-      
-      float bre = B[j][0] * C[j][0] - B[j][1] * C[j][1];
-      float bim = B[j][1] * C[j][0] + B[j][0] * C[j][1];
-      B[j][0] = bre; B[j][1] = bim;
-    }
-  */
-  irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
-  igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
-  ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
-
-  fftw_execute(irplan);
-  fftw_execute(igplan);
-  fftw_execute(ibplan);
-
-  // normalization
-  for (int j=0; j<_size; ++j)
-    {
-      data[j]->r = out_r[j] * 1/_size;
-      data[j]->g = out_g[j] * 1/_size;
-      data[j]->b = out_b[j] * 1/_size;
-    }
-  
   fftw_destroy_plan(rplan);
   fftw_destroy_plan(gplan);
   fftw_destroy_plan(bplan);
-  fftw_destroy_plan(fplan);
-  fftw_destroy_plan(irplan);
-  fftw_destroy_plan(ibplan);
-  fftw_destroy_plan(igplan);
   fftw_cleanup();
 
   if (in_r) { delete [] in_r; in_r = 0; }
   if (in_g) { delete [] in_g; in_g = 0; }
   if (in_b) { delete [] in_b; in_b = 0; }
-  if (out_r) { delete [] out_r; out_r = 0; }
-  if (out_g) { delete [] out_g; out_g = 0; }
-  if (out_b) { delete [] out_b; out_b = 0; } 
-  if (f) { delete [] f; f = 0; }
-  if (ff) { delete [] ff; ff = 0; }
   return true;
 }
 
+bool Image::ifft(fftw_complex* R, fftw_complex* G, fftw_complex* B)
+{
+  if (R == 0 || G == 0 || B == 0) return false;
+  fftw_plan irplan, igplan, ibplan; 
+  double scale = 1.0/double(_size); // normalization factor
+
+  double * out_r = new double[_size]; std::memset(out_r, 0, _size * sizeof(double)); 
+  double * out_g = new double[_size]; std::memset(out_g, 0, _size * sizeof(double)); 
+  double * out_b = new double[_size]; std::memset(out_b, 0, _size * sizeof(double)); 
+  
+  irplan = fftw_plan_dft_c2r_2d(_height, _width, R, out_r, FFTW_ESTIMATE);
+  igplan = fftw_plan_dft_c2r_2d(_height, _width, G, out_g, FFTW_ESTIMATE);
+  ibplan = fftw_plan_dft_c2r_2d(_height, _width, B, out_b, FFTW_ESTIMATE);
+  
+  fftw_execute(irplan);
+  fftw_execute(igplan);
+  fftw_execute(ibplan);
+
+  // set image data
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->r = out_r[j] * scale;
+      data[j]->g = out_g[j] * scale;
+      data[j]->b = out_b[j] * scale;
+    }
+  
+  fftw_destroy_plan(irplan);
+  fftw_destroy_plan(ibplan);
+  fftw_destroy_plan(igplan);
+  fftw_cleanup();
+
+  if (out_r) { delete [] out_r; out_r = 0; }
+  if (out_g) { delete [] out_g; out_g = 0; }
+  if (out_b) { delete [] out_b; out_b = 0; } 
+
+  return true;
+}
+
+bool Image::lowpass_filter(double r0, double n)
+{
+  /*butterworth lowpass filter*/
+  double * f = new double[_size]; // filter image
+  for (int y=0, idx=0; y<_height; ++y)
+    {
+      for (int x=0; x<_width; ++x, ++idx)
+	{	  
+	  double xn = double( x - _width/2.0 );
+	  double yn = double( y - _height/2.0 );
+	  double r2 = sqrt(xn * xn + yn * yn);
+	  f[idx] = 1.0 / (1.0 + pow( (r2 / r0), 2 * n)); // low pass butterworth filter
+	}
+    }
+
+  double * ff = build_fft_filter(f, _width, _height);  
+
+  fftw_complex *R, *G, *B; 
+  int nb = (_width/2 + 1) * _height;
+  // allocate coefficients for forward fourier transformation
+  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+
+  fft(R, G, B);
+  fourier_convolve(R, G, B, ff, _width/2+1, _height);
+  if (!ifft(R, G, B)) { printf (" .. ifft failed\n"); }
+
+  if (R) { delete R, R = 0; }
+  if (G) { delete G, G = 0; }
+  if (B) { delete B, B = 0; }
+
+  return true;
+}
+
+bool Image::highpass_filter(double r0, double n)
+{
+  /*butterworth lowpass filter*/
+  double * f = new double[_size]; // filter image
+  for (int y=0, idx=0; y<_height; ++y)
+    {
+      for (int x=0; x<_width; ++x, ++idx)
+	{	  
+	  double xn = double (x - _width / 2.0);
+	  double yn = double (y - _height / 2.0);
+	  double r2 = sqrt(xn * xn + yn * yn);
+	  if (r2 > 0)
+	    f[idx] = 1.0 / (1.0 +  pow( (r0 / r2), 2 * n)); // high pass butterworth filter
+	  else f[idx] = 1.0;
+	}
+    }  
+  double * ff = build_fft_filter(f, _width, _height);  
+
+  fftw_complex *R, *G, *B; 
+  int nb = (_width/2 + 1) * _height;
+  // allocate coefficients for forward fourier transformation
+  R = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  G = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+  B = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * nb);
+
+  fft(R, G, B);  
+  fourier_convolve(R, G, B, ff, _width/2+1, _height);
+  if (!ifft(R, G, B)) { printf (" .. ifft failed\n"); }
+
+  if (R) { delete R; R = 0; }
+  if (G) { delete G; G = 0; }
+  if (B) { delete B; B = 0; }
+  if (ff){ delete [] ff; ff = 0; }
+
+  return true;
+}
+
+// dbg save fourier mag spectrum
 void Image::save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h)
 {
   Image * mag_img = new Image(w, h);
@@ -1403,9 +1374,9 @@ double * Image::build_fft_filter(double * filter, int w, int h)
 {
   swap_cols(filter, w, h);
   swap_rows(filter, w, h);
-
-  /*
+  
   Image * ifilter1 = new Image(w, h);
+  /*
   for (int j=0; j<w*h; ++j)
     {      
       ifilter1->set(j,255*(float)filter[j]);

@@ -222,13 +222,17 @@ class Image
   // unsharp masking (used to sharpen image)
   bool unsharp_mask(int r, float s, int C, int threshold = 25);    
   
-  // ffts
+  // fftw library support
+  bool fft(fftw_complex* R, fftw_complex* G, fftw_complex* B);
+  bool ifft(fftw_complex* R, fftw_complex* G, fftw_complex* B);
   bool convolve_fft();
+  bool lowpass_filter(double r0, double n);
+  bool highpass_filter(double r0, double n);
   void save_mag_image(char * fname, fftw_complex * R, fftw_complex * G, fftw_complex * B, int w, int h);
   double * build_fft_filter(double * filter, int w, int h);
   void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, fftw_complex*C, int w, int h);
   void fourier_convolve(fftw_complex *R, fftw_complex *G, fftw_complex*B, double*C, int w, int h);
-  int pow2(int i); // zero padding
+  int pow2(int i); // zero padding (not used)
 };
 
 #endif
