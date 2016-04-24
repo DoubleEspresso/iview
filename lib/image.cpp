@@ -614,7 +614,6 @@ bool Image::unsharp_mask(int r, float s, int C, int t)
       float percent = gscale->pixel(j)->r / range;
       float delta = (0.299 * cd.r + 0.587 * cd.g + 0.114 * cd.b + 0.5) * percent; // gray-value
 
-      //printf("%f\n", delta);
       if (abs(delta) >= t)
 	{
 	  src.r += delta; src.g += delta; src.b += delta;
@@ -629,6 +628,28 @@ bool Image::unsharp_mask(int r, float s, int C, int t)
   if (umask) umask->clear();
   if (contrast) contrast->clear();
   if (gscale) gscale->clear();
+}
+
+// TODO: improve ... or remove
+bool Image::fft_sharpen(double r0, double n, double A, double B)
+{
+  // note: 0.25 < A < 0.5 (typical)
+  // b > 1
+  Image * hp = new Image(*this);
+  hp->highpass_filter(30, 10); // butterworth high pass filter
+  hp->mul(B);
+  hp->adjust_contrast(-255);
+  add(hp);
+  //mul(0.25);
+
+  /*
+  for (int j=0; j<_size; ++j)
+    {
+      data[j]->set(*hp->pixel(j));
+    }
+  */
+  hp->clear();
+  return true;
 }
 
 // spatial convolution definitions
@@ -915,6 +936,47 @@ bool Image::fliph()
 	  int ir = y * _width + idx;
 	  swap(il, ir);
 	}
+    }
+  return true;
+}
+
+bool Image::mul(double s)
+{  
+  for (int j = 0; j<_size; ++j)
+    {
+      float r = s * pixel(j)->r;
+      float g = s * pixel(j)->g;
+      float b = s * pixel(j)->b;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
+    }
+  return true;
+}
+
+bool Image::add(double d)
+{  
+  for (int j = 0; j<_size; ++j)
+    {
+      float r = d + pixel(j)->r;
+      float g = d + pixel(j)->g;
+      float b = d + pixel(j)->b;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
+    }
+  return true;
+}
+
+bool Image::add(Image * src)
+{
+  if (src->size() != _size) return false;
+  
+  for (int j = 0; j<_size; ++j)
+    {
+      float r = data[j]->r + src->pixel(j)->r;
+      float g = data[j]->g + src->pixel(j)->g;
+      float b = data[j]->b + src->pixel(j)->b;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
     }
   return true;
 }

@@ -29,7 +29,8 @@ int main(int argc, char * argv[])
  
       //im->unsharp_mask(7, 4, 128, 1);
       //im->adjust_contrast(128);
-      im->lowpass_filter(10, 1);
+      //im->lowpass_filter(10, 1);
+      im->fft_sharpen(30, 2, 0.75, 2.0);
       //im->nonlocal_means(7, 5);
       //im->xform(0,0,jptr->width()/2, jptr->height()/2, 145.0, 100.0);
       //im->convolve_fft();
