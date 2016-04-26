@@ -177,6 +177,7 @@ class Image
   bool swap_quadrants(); // similar to fftshift in matlab
   bool resize(int w, int h, int c = 3);
   bool on_image(int i);
+  void bounds(float & minr, float & maxr, float & ming, float & maxg, float & minb, float & maxb);
 
   // whole image math operations
   bool mul(double s);
@@ -203,6 +204,8 @@ class Image
   template<Interpolation i>
   Pixel<float> * interpolate(float x, float y);
   bool adjust_contrast(float C);
+  bool update_from_histo(int min, int max);
+  bool update_from_histo(int min, int max, float  minr, float  maxr, float  ming, float  maxg, float  minb, float  maxb);
   
   // filter operations
   void sharpen(int ksize);

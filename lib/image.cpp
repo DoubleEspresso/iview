@@ -140,7 +140,7 @@ bool Image::load(char * filename)
   for (int j=0, idx=0; j<_size; ++j, idx+=3)
     {
       data[j]->set(tmp[idx], tmp[idx+1], tmp[idx+2]);
-    }  
+    }
   return ok;
 }
 
@@ -925,6 +925,18 @@ bool Image::on_image(int i)
   return (i >= 0 && i < _size);
 }
 
+void Image::bounds(float & minr, float & maxr, float & ming, float & maxg, float & minb, float & maxb)
+{
+  minr = ming = minb = 256;
+  maxr = maxg = maxb = 0;
+  for (int j=0; j<_size; ++j)
+    {
+      float r = data[j]->r; float g = data[j]->g; float b= data[j]->b;
+      if (r < minr) minr = r; if (g < ming) ming = g; if (b < minb) minb = b;
+      if (r > maxr) maxr = r; if (g > maxg) maxg = g; if (b > maxb) maxb = b;
+    }
+}
+
 bool Image::fliph()
 {
   if (!data || _width <= 1 || _height <= 1) return false;  
@@ -1084,6 +1096,57 @@ bool Image::adjust_contrast(float C)
       data[j]->set(nr, ng, nb);
     }
 				   
+}
+
+// for now, just the red components are updated
+bool Image::update_from_histo(int min, int max)
+{
+  float sz = 4095;
+  float minr = 0; float ming = 0; float minb = 0;
+  float maxr = 0; float maxg = 0; float maxb = 0;
+  bounds(minr, maxr, ming, maxg, minb, maxb);
+  
+  float minr2 = (float) (((float) min / sz) * (maxr - minr) + minr);
+  float maxr2 = (float) (((float) max / sz) * (maxr - minr) + minr);
+  float ming2 = (float) (((float) min / sz) * (maxg - ming) + ming);
+  float maxg2 = (float) (((float) max / sz) * (maxg - ming) + ming);
+  float minb2 = (float) (((float) min / sz) * (maxb - minb) + minb);
+  float maxb2 = (float) (((float) max / sz) * (maxb - minb) + minb);
+  float scr = (maxr - minr) / 255.0;
+  float scg = (maxg - ming) / 255.0;
+  float scb = (maxb - minb) / 255.0;      
+
+  for (int j=0; j<_size; ++j)
+    {
+      float r = (data[j]->r - minr2) / scr;
+      float g = (data[j]->g - ming2) / scg;
+      float b = (data[j]->b - minb2) / scb;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
+    }
+}
+
+bool Image::update_from_histo(int min, int max, float  minr, float  maxr, float  ming, float  maxg, float  minb, float  maxb)
+{
+  float sz = 4095;
+  float minr2 = (float) (((float) min / sz) * (maxr - minr) + minr);
+  float maxr2 = (float) (((float) max / sz) * (maxr - minr) + minr);
+  float ming2 = (float) (((float) min / sz) * (maxg - ming) + ming);
+  float maxg2 = (float) (((float) max / sz) * (maxg - ming) + ming);
+  float minb2 = (float) (((float) min / sz) * (maxb - minb) + minb);
+  float maxb2 = (float) (((float) max / sz) * (maxb - minb) + minb);
+  float scr = (maxr - minr) / 255.0;
+  float scg = (maxg - ming) / 255.0;
+  float scb = (maxb - minb) / 255.0;      
+
+  for (int j=0; j<_size; ++j)
+    {
+      float r = (data[j]->r - minr2) / scr;
+      float g = (data[j]->g - ming2) / scg;
+      float b = (data[j]->b - minb2) / scb;
+      clamp(r,g,b);
+      data[j]->set(r,g,b);
+    }
 }
 
 /* utilities section */

@@ -12,10 +12,14 @@ public class HistogramWindow extends GLWindow
 	int[] hBins = null;
 	int max = 0;
 	int min = 255;
+	Vec2 boundsr = null;
+	Vec2 boundsg = null;
+	Vec2 boundsb = null;
 	public final Vec2 MousePos = new Vec2(0f, 0f);
 	public final Vec2 MouseDelta = new Vec2(0f,0f);
 	private float center = 0;
 	private float dist = 0;
+	private float prevDist = 0;
 	private boolean mouseDown = false;
 	private boolean dragCenter = false;
 	
@@ -26,14 +30,19 @@ public class HistogramWindow extends GLWindow
 	}
 	
 
-	public HistogramWindow(Display d, String s, int w, int h, int[] histoBins) 
+	public HistogramWindow(Display d, String s, int w, int h, Histogram hi) 
 	{ 
 		super(d,s,w,h); 
-		if (histoBins != null) 
+		if (hi.Bins() != null) 
 		{
+			int[] histoBins = hi.Bins();
 			hBins = new int[histoBins.length];
 			for (int j=0; j < histoBins.length; ++j) hBins[j] = histoBins[j]; 
 		}
+		boundsr = hi.redBounds();
+		boundsg = hi.greenBounds();
+		boundsb = hi.blueBounds();
+		
 		center = (float) w/2f;
 		dist = (float) w/2f-1f;
 		
@@ -185,23 +194,30 @@ public class HistogramWindow extends GLWindow
 		gl2.glEnd();
 		gl2.glPopMatrix();
 		
-		updateContrast(w);
+		if (prevDist != dist) 
+		{
+			prevDist = dist;
+			updateContrast(w);
+		}
 	}
 	
 	private void updateContrast(float w)
 	{
-		float minIdx = (float) ((float) hBins.length / (float) w * center-dist);
-		float maxIdx = (float) ((float) hBins.length / (float) w * center+dist);
+		float minIdx = (float) ((float) hBins.length / (float) w * (center-dist));
+		float maxIdx = (float) ((float) hBins.length / (float) w * (center+dist));
 		if ((int)minIdx < 0) minIdx = 0;
 		if ((int)minIdx > hBins.length) minIdx = hBins.length-2;
 		if ((int)maxIdx > hBins.length) maxIdx = hBins.length-1;
 		if ((int)maxIdx < 1) maxIdx = 1;
-		Iview.UpdateHistoBounds((int)minIdx, (int)maxIdx);
+		//System.out.println(minIdx + " " + maxIdx);
+		Iview.UpdateFromHisto((int)minIdx, (int)maxIdx, (float) boundsr.x, (float) boundsr.y, 
+				(float) boundsg.x, (float) boundsg.y, (float) boundsb.x, (float) boundsb.y);
 	}
 	
 	@Override
 	public void onMouseScroll(MouseEvent e) 
 	{
+		prevDist = dist;
 		//if (mouseDown && dragCenter)
 		{
 			if (e.count > 0) dist *= 1.05;

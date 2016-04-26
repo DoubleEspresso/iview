@@ -58,11 +58,11 @@ public class Image
 		}
 	}
 	
-	public Boolean UpdateHistoBounds(int min, int max)
+	public Boolean UpdateFromHisto(int min, int max, float minr, float maxr, float ming, float maxg, float minb, float maxb)
 	{
 		try 
 		{
-			Boolean ok = Libimage.instance.update_histo_bounds(min, max, image_handle);
+			Boolean ok = Libimage.instance.update_from_histo(min, max, minr, maxr, ming, maxg, minb, maxb, image_handle);
 			updatePixelData();
 			return ok; 
 		} 

@@ -127,4 +127,14 @@ extern "C"
   {
     return handle->adjust_contrast(C);
   }
+
+  bool update_from_histo2(int min, int max, Image * handle)
+  {
+    return handle->update_from_histo(min, max);
+  }
+  bool update_from_histo(int min, int max, float  minr, float  maxr,
+			 float  ming, float  maxg, float  minb, float  maxb, Image * handle)
+  {
+    return handle->update_from_histo( min,  max,   minr,   maxr,   ming,   maxg,   minb,   maxb);
+  }
 }

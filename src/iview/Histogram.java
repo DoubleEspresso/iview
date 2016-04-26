@@ -14,6 +14,9 @@ public class Histogram
 	int stride = 0;
 	int offset = 0;
 	int width = 0;
+	Vec2 boundsr = null;
+	Vec2 boundsg = null;
+	Vec2 boundsb = null;
 	final int nBins = 4096;
 	public Histogram(Image i, int color)
 	{
@@ -27,6 +30,9 @@ public class Histogram
 		width = i.Width();
 		data = ByteBuffer.allocate(i.Size());
 		for (int j=0; j<i.Size(); ++j) data.put(i.pixelData.get(j));
+		boundsr = new Vec2(255,-1);
+		boundsg = new Vec2(255,-1);
+		boundsb = new Vec2(255,-1);
 	
 		bins = new int[nBins];
 		
@@ -38,7 +44,9 @@ public class Histogram
 			public void run()
 			{
 				setBounds();
-				//System.out.println("..setBounds() finished");
+				boundsr = setBounds(0);
+				boundsg = setBounds(1);
+				boundsb = setBounds(2);
 				updateBins();
 				//System.out.println("..updateBins() finished");
 			}
@@ -46,6 +54,10 @@ public class Histogram
 		t.run();
 
 	}
+	
+	public Vec2 redBounds() { return boundsr; }
+	public Vec2 greenBounds() { return boundsg; }
+	public Vec2 blueBounds() { return boundsb; }
 	
 	Boolean setOffset(int color, int w)
 	{
@@ -86,6 +98,21 @@ public class Histogram
 				else if (val > max) max = val;
 			}
 		}
+	}
+	
+	Vec2 setBounds(int o)
+	{
+		Vec2 bound = new Vec2(256, -1);
+		for (int j = o; j < data.capacity(); j+=stride)
+		{
+			for (int i=j; i< j+width; ++i)
+			{
+				int val = Unsigned(data.get(i));
+				if (val < bound.x) bound.x = val;
+				else if (val > bound.y) bound.y = val;
+			}
+		}
+		return bound;
 	}
 	
 	void zeroBins()

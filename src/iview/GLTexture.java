@@ -159,9 +159,9 @@ public class GLTexture
 		return ok;
 	}
 	
-	public Boolean updateHistoBounds(int min, int max)
+	public Boolean UpdateFromHisto(int min, int max, float minr, float maxr, float ming, float maxg, float minb, float maxb)
 	{
-		Boolean ok = image.UpdateHistoBounds(min, max);
+		Boolean ok = image.UpdateFromHisto(min, max, minr, maxr, ming, maxg, minb, maxb);
 		Bind();
 		TextureImage2D();
 		return ok;

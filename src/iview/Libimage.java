@@ -32,5 +32,5 @@ public interface Libimage extends Library
 	public Boolean mean_filter(int r, Pointer handle);
 	public Boolean usharp_mask(int r, float s, int C, int t, Pointer handle);
 	public Boolean adjust_contrast(int C, Pointer handle);
-	public Boolean update_histo_bounds(int min, int max, Pointer image_handle);
+	public Boolean update_from_histo(int min, int max, float minr, float maxr, float ming, float maxg, float minb, float maxb, Pointer image_handle);
 }

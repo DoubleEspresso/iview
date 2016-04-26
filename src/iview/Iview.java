@@ -173,14 +173,16 @@ public class Iview
 	      });
 	}
 	
-	public static void UpdateHistoBounds(final int minIdx, final int maxIdx)
+	public static void UpdateFromHisto(final int minIdx, final int maxIdx, 
+			final float minr, final float maxr, final float ming, 
+			final float maxg, final float minb, final float maxb)
 	{
 	    Display.getDefault().asyncExec(new Runnable() {
 	        @Override
 	        public void run() {
 	        	imgPane.glcanvas.setCurrent();
 	    		imgPane.glcontext.makeCurrent();
-	    		imgPane.texture.updateHistoBounds(minIdx, maxIdx);
+	    		imgPane.texture.UpdateFromHisto(minIdx, maxIdx, minr, maxr, ming, maxg, minb, maxb);
 	    		imgPane.refresh();
 	    		imgPane.glcontext.release();
 	        }
@@ -254,9 +256,7 @@ public class Iview
 			public void handleEvent(Event e)
 			{
 				if (!imgPane.hasImage) return;
-
-				Histogram h = new Histogram(imgPane.texture.image, 0);
-				new HistogramWindow(imgPane.display, "histogram", 450, 180, h.Bins());
+				new HistogramWindow(imgPane.display, "histogram", 450, 180, new Histogram(imgPane.texture.image, 0));
 			}
 		});
 		
