@@ -28,6 +28,18 @@ public class Image
 		initialized = true;
 	}
 	
+	public Image(Image i)
+	{
+		image_handle = i.image_handle;
+		filename = i.filename;
+		width = i.width;
+		height = i.height;
+		pixelData = ByteBuffer.allocate(i.Size());
+		pixelData = i.PixelData();
+		components = i.Components();
+		
+	}
+	
 	Boolean Initialized() { return initialized; }
 	
 	public Boolean Rotate90() 
@@ -37,6 +49,20 @@ public class Image
 			Boolean ok = Libimage.instance.rotate90(image_handle);
 			width = Libimage.instance.width(image_handle);
 			height = Libimage.instance.height(image_handle);			
+			updatePixelData();
+			return ok; 
+		} 
+		catch (Exception any) {
+			System.out.println("..exception calling rotate " + any.getMessage());
+			return false;
+		}
+	}
+	
+	public Boolean UpdateHistoBounds(int min, int max)
+	{
+		try 
+		{
+			Boolean ok = Libimage.instance.update_histo_bounds(min, max, image_handle);
 			updatePixelData();
 			return ok; 
 		} 

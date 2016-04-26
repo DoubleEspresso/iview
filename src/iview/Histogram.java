@@ -15,10 +15,8 @@ public class Histogram
 	int offset = 0;
 	int width = 0;
 	final int nBins = 4096;
-	
 	public Histogram(Image i, int color)
 	{
-		data = i.PixelData();
 		if (!setOffset(color, i.Width()))
 		{
 			System.out.println("..passed invalid color type to histogram, using default (RED)");
@@ -28,8 +26,8 @@ public class Histogram
 		stride = i.Width() * i.Components();
 		width = i.Width();
 		data = ByteBuffer.allocate(i.Size());
-		data.put(i.PixelData());
-		
+		for (int j=0; j<i.Size(); ++j) data.put(i.pixelData.get(j));
+	
 		bins = new int[nBins];
 		
 		//System.out.println("..call setBounds()");
@@ -45,7 +43,8 @@ public class Histogram
 				//System.out.println("..updateBins() finished");
 			}
 		});
-		t.run();		
+		t.run();
+
 	}
 	
 	Boolean setOffset(int color, int w)

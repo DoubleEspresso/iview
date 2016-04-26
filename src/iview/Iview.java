@@ -173,6 +173,20 @@ public class Iview
 	      });
 	}
 	
+	public static void UpdateHistoBounds(final int minIdx, final int maxIdx)
+	{
+	    Display.getDefault().asyncExec(new Runnable() {
+	        @Override
+	        public void run() {
+	        	imgPane.glcanvas.setCurrent();
+	    		imgPane.glcontext.makeCurrent();
+	    		imgPane.texture.updateHistoBounds(minIdx, maxIdx);
+	    		imgPane.refresh();
+	    		imgPane.glcontext.release();
+	        }
+	      });
+	}
+	
 	private static void attachRightClickMenu(final GLContext glcontext, final GLCanvas glcanvas)
 	{
 		// new file selection
@@ -549,7 +563,7 @@ class ImagePane extends GLWindow
         	gl2.glTexCoord2f(0, 1); gl2.glVertex2d(0, h);
         	gl2.glEnd();
         }
-        
+         
 	}
 	
 	public void onKeyPressed(KeyEvent e)
