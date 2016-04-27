@@ -18,10 +18,15 @@ public class HistogramWindow extends GLWindow
 	public final Vec2 MousePos = new Vec2(0f, 0f);
 	public final Vec2 MouseDelta = new Vec2(0f,0f);
 	private float center = 0;
-	private float dist = 0;
+	private float left = 0;
+	private float right = 0;
+	private float distl = 0;
+	private float distr = 0;
 	private float prevDist = 0;
 	private boolean mouseDown = false;
 	private boolean dragCenter = false;
+	private boolean dragRight = false;
+	private boolean dragLeft = false;
 	
 	public HistogramWindow(Display parent, String title, int w, int h) 
 	{
@@ -44,7 +49,10 @@ public class HistogramWindow extends GLWindow
 		boundsb = hi.blueBounds();
 		
 		center = (float) w/2f;
-		dist = (float) w/2f-1f;
+		distl = (float) w/2f-1f;
+		distr = (float) w/2f-1f;
+		left = (float) 1;
+		right = (float) w-1;
 		
 		setMax();
 	}
@@ -83,18 +91,7 @@ public class HistogramWindow extends GLWindow
 		gl2.glLoadIdentity();
 		gl2.glOrtho(0, w, 0, h, -1, 1);
 		gl2.glMatrixMode(GL2.GL_MODELVIEW);
-//        gl2.glMatrixMode( GL2.GL_PROJECTION );
-//        gl2.glClearColor(0f, 0f, 0f, 0f);
-//        gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT); // helps to stop flickering on resize        
-//        gl2.glLoadIdentity();               
-//        gl2.glOrtho(0, w, h, 0, 0, 1);
-//
-//        gl2.glMatrixMode(GL2.GL_MODELVIEW);
-//        gl2.glViewport( 0, 0, w, h);
-//
-//		gl2.glClearColor(0f, 0f, 0f, 0f);
-//		gl2.glClear(GL.GL_DEPTH_BUFFER_BIT | GL.GL_COLOR_BUFFER_BIT);
-//		gl2.glLoadIdentity();		
+	
 	
 		gl2.glEnable(GL2.GL_LINE_SMOOTH);
 		gl2.glHint(GL2.GL_LINE_SMOOTH_HINT,  GL2.GL_NICEST);
@@ -111,19 +108,11 @@ public class HistogramWindow extends GLWindow
 		gl2.glEnd();
 		gl2.glPopMatrix();
 
-	 
-
-		// draw histo bins
-//		float dX = (float) w / (float) hBins.length;
-//		if (dX >= (float) 400 / (float) hBins.length)
-//			dX = (float) 400 / (float) hBins.length;
 
 		// bins space - map bins-length = width
 		gl2.glPushMatrix();
 		gl2.glScalef((float)w/(float)hBins.length, 1, 1);
-		//gl2.glColor3f(0.85f, 0f, 0f);
-		//gl2.glEnable(GL2.GL_BLEND);
-		//gl2.glBlendFunc(GL2.GL_ONE, GL2.GL_ONE);
+
 		gl2.glBegin(GL2.GL_LINES);
 		for (int j = 0; j < hBins.length; ++j)
 		{
@@ -133,7 +122,6 @@ public class HistogramWindow extends GLWindow
 			gl2.glVertex2f(j, yVal);
 			
 		}
-		//gl2.glDisable(GL2.GL_BLEND);
 		
 		gl2.glEnd();
 		gl2.glPopMatrix();
@@ -179,8 +167,8 @@ public class HistogramWindow extends GLWindow
 		gl2.glBegin(GL2.GL_LINES);
 		gl2.glLineWidth(300);
 		gl2.glColor3f(0.1f, 0.1f, 0.1f);
-		gl2.glVertex2f(center - dist, h);
-		gl2.glVertex2f(center - dist, 0);
+		gl2.glVertex2f(center - distl, h);
+		gl2.glVertex2f(center - distl, 0);
 		gl2.glEnd();
 		gl2.glPopMatrix();
 		
@@ -189,22 +177,21 @@ public class HistogramWindow extends GLWindow
 		gl2.glBegin(GL2.GL_LINES);
 		gl2.glLineWidth(300);
 		gl2.glColor3f(1f, 1f, 1f);
-		gl2.glVertex2f(center+dist, h);
-		gl2.glVertex2f(center+dist, 0);
+		gl2.glVertex2f(center+distr, h);
+		gl2.glVertex2f(center+distr, 0);
 		gl2.glEnd();
 		gl2.glPopMatrix();
 		
-		if (prevDist != dist) 
+		if ( dragCenter || dragLeft || dragRight) 
 		{
-			prevDist = dist;
 			updateContrast(w);
 		}
 	}
 	
 	private void updateContrast(float w)
 	{
-		float minIdx = (float) ((float) hBins.length / (float) w * (center-dist));
-		float maxIdx = (float) ((float) hBins.length / (float) w * (center+dist));
+		float minIdx = (float) ((float) hBins.length / (float) w * (center-distl));
+		float maxIdx = (float) ((float) hBins.length / (float) w * (center+distr));
 		if ((int)minIdx < 0) minIdx = 0;
 		if ((int)minIdx > hBins.length) minIdx = hBins.length-2;
 		if ((int)maxIdx > hBins.length) maxIdx = hBins.length-1;
@@ -217,11 +204,10 @@ public class HistogramWindow extends GLWindow
 	@Override
 	public void onMouseScroll(MouseEvent e) 
 	{
-		prevDist = dist;
 		//if (mouseDown && dragCenter)
 		{
-			if (e.count > 0) dist *= 1.05;
-			else if (e.count < 0) dist /= 1.05;
+			if (e.count > 0) { distl *= 1.05; distr *= 1.05; }
+			else if (e.count < 0) { distl /= 1.05; distr /= 1.05; }
 		}	
 		refresh();
 	}
@@ -237,6 +223,18 @@ public class HistogramWindow extends GLWindow
 		if (mouseDown && dragCenter)
 		{
 			center = (float) MousePos.x;
+			left += MouseDelta.x;
+			right += MouseDelta.x;
+		}
+		else if (mouseDown && dragRight)
+		{
+			left = (float) MousePos.x;
+			distl = center - left;
+		}
+		else if (mouseDown && dragLeft)
+		{
+			right = (float) MousePos.x;
+			distr = right - center;
 		}
 		
 		refresh();	
@@ -252,6 +250,14 @@ public class HistogramWindow extends GLWindow
 		{
 			dragCenter = true;
 		}
+		else if (Math.abs(MousePos.x - left) <= 10)
+		{
+			dragLeft = true;
+		}
+		else if (Math.abs(MousePos.x - right) <= 10)
+		{
+			dragRight = true;
+		}
 	}
 
 	@Override
@@ -260,6 +266,10 @@ public class HistogramWindow extends GLWindow
 		if (mouseDown)
 		{
 			mouseDown = false;
+			dragCenter = false;
+			dragLeft = false;
+			dragRight = false;
+					
 		}
 	}
 

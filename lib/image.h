@@ -111,10 +111,11 @@ struct Gamma
 class Image
 {
   int _height, _width, _comps, _size;
-  Pixel<float>** data;
+  Pixel<float>** data;  
   Image_JPEG * jpeg_handle;
-  Filter<float> * filter;
+  Filter<float> * filter;  
   Gamma gammas;
+  Pixel<float>** data_copy;
  public:
   Image(uint w, uint h);
   Image(Image& other);
@@ -178,7 +179,8 @@ class Image
   bool resize(int w, int h, int c = 3);
   bool on_image(int i);
   void bounds(float & minr, float & maxr, float & ming, float & maxg, float & minb, float & maxb);
-
+  void copy_data();
+  
   // whole image math operations
   bool mul(double s);
   bool add(double d);

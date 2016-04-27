@@ -11,14 +11,14 @@
 
 Image::Image() :
   _height(0), _width(0), _comps(0), 
-  _size(0), data(0), jpeg_handle(0), filter(0)
+  _size(0), data(0), jpeg_handle(0), filter(0), data_copy(0)
 {
   gammas.r = 1; gammas.b = 1; gammas.g = 1;
 }
 
 Image::Image(uint w, uint h) : 
   _height(h), _width(w), _comps(3), 
-  _size(w*h), data(0), jpeg_handle(0), filter(0)
+  _size(w*h), data(0), jpeg_handle(0), filter(0), data_copy(0)
 {
   gammas.r = 1; gammas.b = 1; gammas.g = 1;
   init(w,h,3);
@@ -26,7 +26,7 @@ Image::Image(uint w, uint h) :
 
 Image::Image(Pixel<float> ** src, uint w, uint h) :
   _height(h), _width(w), _comps(3), 
-  _size(w*h), data(0), jpeg_handle(0), filter(0)
+  _size(w*h), data(0), jpeg_handle(0), filter(0), data_copy(0)
 {
   if (!jpeg_handle) jpeg_handle = new Image_JPEG();
   gammas.r = 1; gammas.b = 1; gammas.g = 1;
@@ -45,7 +45,8 @@ Image::Image(Pixel<float> ** src, uint w, uint h) :
 
 Image::Image(Image& other) :
   _height(other.height()), _width(other.width()), _comps(other.comps()),
-  _size(other.size()), data(0), jpeg_handle(other.get_handle()), filter(other.img_filter())
+  _size(other.size()), data(0), jpeg_handle(other.get_handle()), filter(other.img_filter()),
+  data_copy(0)
 {
   gammas.r = 1; gammas.b = 1; gammas.g = 1;
   data = new Pixel<float>*[_size];
@@ -937,6 +938,19 @@ void Image::bounds(float & minr, float & maxr, float & ming, float & maxg, float
     }
 }
 
+void Image::copy_data()
+{
+  if (data_copy == NULL)
+    {
+      data_copy = new Pixel<float>*[_size];
+      for (int j=0; j <_size; ++j)
+	{
+	  data_copy[j] = new Pixel<float>(0,0,0);
+	  data_copy[j]->set(*data[j]);
+	}
+    }
+}
+
 bool Image::fliph()
 {
   if (!data || _width <= 1 || _height <= 1) return false;  
@@ -1128,6 +1142,7 @@ bool Image::update_from_histo(int min, int max)
 
 bool Image::update_from_histo(int min, int max, float  minr, float  maxr, float  ming, float  maxg, float  minb, float  maxb)
 {
+  copy_data();
   float sz = 4095;
   float minr2 = (float) (((float) min / sz) * (maxr - minr) + minr);
   float maxr2 = (float) (((float) max / sz) * (maxr - minr) + minr);
@@ -1135,15 +1150,15 @@ bool Image::update_from_histo(int min, int max, float  minr, float  maxr, float 
   float maxg2 = (float) (((float) max / sz) * (maxg - ming) + ming);
   float minb2 = (float) (((float) min / sz) * (maxb - minb) + minb);
   float maxb2 = (float) (((float) max / sz) * (maxb - minb) + minb);
-  float scr = (maxr - minr) / 255.0;
-  float scg = (maxg - ming) / 255.0;
-  float scb = (maxb - minb) / 255.0;      
+  float scr = (maxr2 - minr2) / 255.0;
+  float scg = (maxg2 - ming2) / 255.0;
+  float scb = (maxb2 - minb2) / 255.0;      
 
   for (int j=0; j<_size; ++j)
     {
-      float r = (data[j]->r - minr2) / scr;
-      float g = (data[j]->g - ming2) / scg;
-      float b = (data[j]->b - minb2) / scb;
+      float r = (data_copy[j]->r - minr2) / scr;
+      float g = (data_copy[j]->g - ming2) / scg;
+      float b = (data_copy[j]->b - minb2) / scb;
       clamp(r,g,b);
       data[j]->set(r,g,b);
     }
