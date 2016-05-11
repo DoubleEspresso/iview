@@ -6,6 +6,7 @@
 
 int main(int argc, char * argv[])
 {
+  /*
   Image_TIFF * itiff = new Image_TIFF();
   itiff->load_tiff("/home/mjg/Desktop/minisblack-1c-8b.tiff");
   itiff->save_tiff("/home/mjg/Desktop/minisblack-testsave.tiff");
@@ -13,7 +14,7 @@ int main(int argc, char * argv[])
   Image_TIFF * itiff2 = new Image_TIFF();
   itiff2->load_tiff("/home/mjg/Desktop/rgb-3c-16b.tiff");
   itiff2->save_tiff("/home/mjg/Desktop/rgb-3c-16b-testsave.tiff");
-
+  */
   Image * im = new Image();
   if (im->load("/home/mjg/Desktop/test-blur.jpg"))///home/mjg/photos/carson-phone/IMG_1215.JPG"))
     {
@@ -27,7 +28,7 @@ int main(int argc, char * argv[])
 	     jptr->size());
  
       //im->convolve_fft();
-      im->binning(2);
+      im->binning(5);
       //im->sharpen(3);
       //im->sobel();
       //im->median(3);

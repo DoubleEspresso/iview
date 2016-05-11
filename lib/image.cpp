@@ -474,36 +474,38 @@ bool Image::binning(int b)
 
   // storage for binned image
   Pixel<float> ** result;
-  int w = _width / b;
-  int h = _height / b;
+  int w = _width / b; 
+  int h = _height / b; 
+  int bh = floor(b/2);
   if (w <= 1 || h <= 1 ) return true;
-  
   int sz = w * h;
-  float div = b*b;
+
   result = new Pixel<float>*[sz];
   for (int j=0; j<sz; ++j)
     {
       result[j] = new Pixel<float>(0,0,0);
     }
 
-  for (int y = b/2, idx = 0; y < _height; y += b)
+  for (int y = bh, idx = 0; y < _height-bh; y += b)
     {
-      for (int x = b/2; x <_width; x += b, ++idx)
+      for (int x = bh; x <_width-bh; x += b, ++idx)
 	{	  
 
-	  double pr = 0; double pg = 0; double pb = 0;
-
-	  for (int ry = y-b/2; ry < y + b/2; ++ry)
+	  double pr = 0; double pg = 0; double pb = 0; float count = 0;
+	  for (int ry = std::max(0, y - bh); ry < std::min(y + bh, _height); ++ry)
 	    {
-	      for (int rx = x-b/2; rx < x + b/2; ++rx)
+	      for (int rx = std::max(0, x - bh); rx < std::min(x + bh, _width); ++rx)
 		{
 		  int i = ry * _width + rx;
-		  if (!on_image(i)) continue;
-		  pr += data[i]->r; pg += data[i]->g; pb += data[i]->b;
+		  pr += data[i]->r; pg += data[i]->g; pb += data[i]->b; ++count;
 		}
 	    }
-	  pr /= div; pg /= div; pb /= div;
-	  result[idx]->set(pr, pg, pb);
+	  if(count > 0) 
+	    { 
+	      pr /= count; pg /= count; pb /= count;
+	      result[idx]->set(pr, pg, pb);
+	    }
+
 	}
     }
 
