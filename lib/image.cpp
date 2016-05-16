@@ -514,6 +514,7 @@ bool Image::mean_filter(int r)
     }
   convolve(filter->get_kernel(), filter->dim());
   if (filter) { delete filter; filter = 0; }
+  return true;
 }
 
 bool Image::nonlocal_means(int r, int sz)
@@ -629,6 +630,7 @@ bool Image::unsharp_mask(int r, float s, int C, int t)
   if (umask) umask->clear();
   if (contrast) contrast->clear();
   if (gscale) gscale->clear();
+  return true;
 }
 
 // TODO: improve ... or remove
@@ -804,7 +806,7 @@ bool Image::binning(int b)
   Pixel<float> ** result;
   int w = _width / b; 
   int h = _height / b; 
-  int bh = floor(b/2);
+  int bh = (int)floor((float)b/2);
   if (w <= 1 || h <= 1 ) return true;
   int sz = w * h;
 
@@ -919,6 +921,7 @@ bool Image::resize(int w, int h, int c)
       delete[] data; data = 0;
     }
   init(w, h, c);
+  return true;
 }
 
 bool Image::on_image(int i)
@@ -1109,7 +1112,7 @@ bool Image::adjust_contrast(float C)
       clamp(nr, ng, nb);
       data[j]->set(nr, ng, nb);
     }
-				   
+	return true;		   
 }
 
 // for now, just the red components are updated
@@ -1138,6 +1141,7 @@ bool Image::update_from_histo(int min, int max)
       clamp(r,g,b);
       data[j]->set(r,g,b);
     }
+	return true;
 }
 
 bool Image::update_from_histo(int min, int max, float  minr, float  maxr, float  ming, float  maxg, float  minb, float  maxb)
@@ -1162,6 +1166,7 @@ bool Image::update_from_histo(int min, int max, float  minr, float  maxr, float 
       clamp(r,g,b);
       data[j]->set(r,g,b);
     }
+	return true;
 }
 
 /* utilities section */

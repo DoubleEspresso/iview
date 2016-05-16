@@ -1,5 +1,5 @@
-#include <stdio.h>
 
+#include <stdio.h>
 #include "image.h"
 #include "image_jpeg.h"
 #include "image_tiff.h"

@@ -15,6 +15,8 @@ typedef unsigned int uint;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
+#define M_PI 3.14159265358979323846264338327950288
+
 enum Interpolation
   {
     nearestneighbor, bilinear, bicubic
