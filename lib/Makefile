@@ -7,7 +7,11 @@ INCS +=-I../../external/jpeg/src -I../../external/math/fftw/api -I../../external
 CFLAGS = -Wall -fPIC -O3 -m64 $(INCS) # -g for debug
 
 SRCS = image.cpp image_jpeg.cpp stringutils.cpp jpeg_interface.cpp imlib_interface.cpp image_tiff.cpp
+SRCSCL = mainCL.cpp image_cl.cpp image_jpeg.cpp stringutils.cpp
+
 OBJS = $(SRCS:.cpp=.o)
+OBJSCL = $(SRCSCL:.cpp=.o)
+
 LIBTIFF_OBJS = image_tiff.o tiff_interface.o
 LIBJPEG_OBJS = image_jpeg.o jpeg_interface.o 
 LIBIMAGE_OBJS = image.o image_jpeg.o imlib_interface.o
@@ -30,6 +34,9 @@ lib: libiview.so
 .PHONY: test
 test: debug.exe
 
+.PHONY: testCL
+testCL: debugCL.exe
+
 .PHONY: install
 install:
 	cp *.so ../bin
@@ -51,9 +58,12 @@ libimage.so: ${LIBIMAGE_OBJS}
 debug.exe: ${TESTOBJS}
 	$(CXX) $(INCS) -o $@ $^ $(LFLAGS)
 
+debugCL.exe: ${OBJSCL}
+	$(CXX) $(INCS) -o $@ $^ $(LFLAGS) -lOpenCL
+
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $<
 
 .PHONY: clean
 clean:
-	-${RM} ${OBJS} *~ *.so *.o debug.exe
+	-${RM} ${OBJS} *~ *.so *.o debug.exe debugCL.exe

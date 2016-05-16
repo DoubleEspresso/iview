@@ -152,7 +152,7 @@ public class HistogramWindow extends GLWindow
 		gl2.glPushMatrix();
 		gl2.glBegin(GL2.GL_LINES);
 		gl2.glLineWidth(300);
-		gl2.glColor3f(0.6f, 0.6f, 0.6f);
+		gl2.glColor3f(0.75f, 0.75f, 0.75f);
 		for (int j = -2; j < 2; ++j)
 		{
 			gl2.glVertex2f(center+j, h);
