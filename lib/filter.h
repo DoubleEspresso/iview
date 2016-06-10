@@ -118,9 +118,9 @@ Filter(FilterType t) : kernel(0), _size(0), type(t)
   void set_sharpen3x3()
   {
     if (!kernel) kernel = new T[9];
-    kernel[0] = 0; kernel[1] = -1; kernel[2] = 0;
-    kernel[3] = -1; kernel[4] = 5; kernel[5] = -1;
-    kernel[6] = 0; kernel[7] = -1; kernel[8] = 0;
+    kernel[0] = -0.25; kernel[1] = -0.25; kernel[2] = -0.25;
+    kernel[3] = -0.25; kernel[4] = 3; kernel[5] = -0.25;
+    kernel[6] = -0.25; kernel[7] = -0.25; kernel[8] = -0.25;
   }  
   void set_sharpen5x5() {}
   void set_sharpen7x7() {}
